@@ -1,13 +1,19 @@
-from flask import Flask, request, Response, render_template, redirect, url_for, session, flash
+from flask import Flask, request, Response, render_template, redirect, url_for, session, flash, jsonify
 from functools import wraps
 import hashlib
 import secrets
-from typing import Set
+from typing import Set, Dict, Optional
 from werkzeug.security import generate_password_hash, check_password_hash
+import jwt
+from datetime import datetime, timedelta, UTC
 
 app = Flask(__name__)
 # Set the secret key to a random value, required for session management
 app.secret_key = secrets.token_hex(32)
+# JWT configuration
+JWT_SECRET = secrets.token_hex(32)
+JWT_ALGORITHM = 'HS256'
+JWT_EXPIRATION_DELTA = timedelta(hours=1)
 
 # Simulated user database
 USERS = {
@@ -107,6 +113,38 @@ def login_required(f):
         return f(*args, **kwargs)
     return decorated
 
+def generate_token(username: str) -> str:
+    """Generate a new JWT token for a user"""
+    payload = {
+        'username': username,
+        'exp': datetime.now(UTC) + JWT_EXPIRATION_DELTA
+    }
+    return jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALGORITHM)
+
+def verify_token(token: str) -> Optional[Dict]:
+    """Verify a JWT token and return the payload if valid"""
+    try:
+        return jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
+    except jwt.InvalidTokenError:
+        return None
+
+def token_auth_required(f):
+    """Decorator for token-based authentication"""
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        auth_header = request.headers.get('Authorization')
+        if not auth_header or not auth_header.startswith('Bearer '):
+            return jsonify({'error': 'Missing or invalid token'}), 401
+        
+        token = auth_header.split(' ')[1]
+        payload = verify_token(token)
+        
+        if not payload:
+            return jsonify({'error': 'Invalid or expired token'}), 401
+        
+        return f(*args, **kwargs)
+    return decorated
+
 @app.route('/')
 def index():
     return 'Welcome to the Authentication Demo! Try /basic or /digest.'
@@ -150,5 +188,41 @@ def logout():
 def form_protected():
     return render_template('protected.html')
 
+@app.route('/api/token', methods=['POST'])
+def get_token():
+    """Endpoint to obtain a JWT token"""
+    print("Headers:", dict(request.headers))
+    auth = request.authorization
+    print("Auth:", auth)
+    
+    if not auth:
+        print("No auth provided")
+        return jsonify({
+            'error': 'Could not verify your access level for that URL.\n'
+                    'You have to login with proper credentials'
+        }), 401
+    
+    if not check_basic_auth(auth.username, auth.password):
+        print(f"Invalid credentials for user: {auth.username}")
+        return jsonify({
+            'error': 'Invalid credentials'
+        }), 401
+    
+    print(f"Generating token for user: {auth.username}")
+    token = generate_token(auth.username)
+    return jsonify({'token': token})
+
+@app.route('/api/protected')
+@token_auth_required
+def token_protected():
+    """Protected endpoint requiring valid JWT token"""
+    auth_header = request.headers.get('Authorization')
+    token = auth_header.split(' ')[1]
+    payload = verify_token(token)
+    return jsonify({
+        'message': f'Hello {payload["username"]}! This endpoint is protected by JWT.',
+        'expires': datetime.fromtimestamp(payload["exp"]).isoformat()
+    })
+
 if __name__ == '__main__':
-    app.run(debug=True) 
+    app.run(debug=True, port=5001) 

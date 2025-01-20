@@ -1,5 +1,7 @@
 import pytest
-from app import app
+from app import app, generate_token, verify_token
+import base64
+import json
 
 
 @pytest.fixture
@@ -171,4 +173,72 @@ def test_form_logout(client):
     response = client.get('/form', follow_redirects=True)
     assert b'Please log in to access this page' in response.data
     # Verify we're at login page
-    assert b'<h3 class="text-center">Login</h3>' in response.data 
+    assert b'<h3 class="text-center">Login</h3>' in response.data
+
+
+def test_get_token_no_auth(client):
+    """Test token endpoint with no authentication"""
+    response = client.post('/api/token')
+    assert response.status_code == 401
+    data = json.loads(response.data)
+    assert 'error' in data
+
+
+def test_get_token_invalid_auth(client):
+    """Test token endpoint with invalid credentials"""
+    credentials = base64.b64encode(b'wrong:password').decode('utf-8')
+    headers = {'Authorization': f'Basic {credentials}'}
+    response = client.post('/api/token', headers=headers)
+    assert response.status_code == 401
+    data = json.loads(response.data)
+    assert 'error' in data
+
+
+def test_get_token_valid_auth(client):
+    """Test token endpoint with valid credentials"""
+    credentials = base64.b64encode(b'admin:secret').decode('utf-8')
+    headers = {'Authorization': f'Basic {credentials}'}
+    response = client.post('/api/token', headers=headers)
+    assert response.status_code == 200
+    data = json.loads(response.data)
+    assert 'token' in data
+    # Verify the token is valid
+    token = data['token']
+    payload = verify_token(token)
+    assert payload is not None
+    assert payload['username'] == 'admin'
+
+
+def test_protected_endpoint_no_token(client):
+    """Test protected endpoint with no token"""
+    response = client.get('/api/protected')
+    assert response.status_code == 401
+    data = json.loads(response.data)
+    assert 'error' in data
+
+
+def test_protected_endpoint_invalid_token(client):
+    """Test protected endpoint with invalid token"""
+    headers = {'Authorization': 'Bearer invalid.token.here'}
+    response = client.get('/api/protected', headers=headers)
+    assert response.status_code == 401
+    data = json.loads(response.data)
+    assert 'error' in data
+
+
+def test_protected_endpoint_valid_token(client):
+    """Test protected endpoint with valid token"""
+    # First get a valid token
+    credentials = base64.b64encode(b'admin:secret').decode('utf-8')
+    headers = {'Authorization': f'Basic {credentials}'}
+    token_response = client.post('/api/token', headers=headers)
+    token = json.loads(token_response.data)['token']
+    
+    # Test protected endpoint
+    headers = {'Authorization': f'Bearer {token}'}
+    response = client.get('/api/protected', headers=headers)
+    assert response.status_code == 200
+    data = json.loads(response.data)
+    assert 'message' in data
+    assert 'admin' in data['message']
+    assert 'expires' in data 
