@@ -11,6 +11,15 @@
         <h4>Welcome {{ session['username'] }}!</h4>
         <p class="lead">This is a protected page that uses Form-based Authentication.</p>
         <p>You can only see this content because you are logged in.</p>
+        
+        {% if not session.get('mfa_setup') %}
+        <div class="alert alert-info mt-4">
+            <h4 class="alert-heading">Enable MFA</h4>
+            <p>Enhance your account security by enabling Multi-Factor Authentication.</p>
+            <hr>
+            <a href="{{ url_for('setup_mfa') }}" class="btn btn-primary">Setup MFA</a>
+        </div>
+        {% endif %}
     </div>
 </div>
 {% endblock %} 

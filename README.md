@@ -8,6 +8,7 @@ This demo shows how to implement Basic and Digest Authentication in Flask.
 - Digest Authentication with nonce-based challenge-response
 - Form-based Authentication with session management
 - Token-based Authentication using JWT
+- Multi-Factor Authentication (MFA) using TOTP
 - Secure password storage using Werkzeug's password hashing
 - Decorator-based authentication for route protection
 - In-memory nonce management for Digest Authentication
@@ -17,6 +18,7 @@ This demo shows how to implement Basic and Digest Authentication in Flask.
 - Persistent navigation bar with login state
 - Clean and user-friendly login interface
 - Flash messages for user feedback
+- Built-in TOTP code generator for demo purposes
 - Comprehensive test suite with 99% coverage
 
 ## Setup
@@ -75,12 +77,36 @@ The demo provides these endpoints:
 - `/form` - Protected by Form-based Authentication with session management
 - `/login` - Login page for form-based authentication
 - `/logout` - Logout endpoint for form-based authentication
+- `/setup-mfa` - Setup Multi-Factor Authentication
+- `/verify-mfa` - Verify MFA code
 - `/api/token` - Get JWT token using Basic Authentication
 - `/api/protected` - Protected endpoint requiring JWT token
 
 Default credentials:
 - Username: `admin`
 - Password: `secret`
+
+### Multi-Factor Authentication
+
+The demo includes a simplified MFA implementation using Time-based One-Time Passwords (TOTP). For demonstration purposes, the app includes its own TOTP code generator, but in a real application, you would use an authenticator app like Google Authenticator or Authy.
+
+To set up MFA:
+1. Log in to the application
+2. Visit the protected page
+3. Click "Setup MFA"
+4. You'll see your secret key and a demo TOTP generator
+5. Enter the current 6-digit code to verify and enable MFA
+
+Once MFA is enabled:
+1. Login requires both password and current TOTP code
+2. The demo TOTP generator can be used to generate valid codes
+3. Protected pages require MFA verification
+
+Note: In a production environment, you would:
+- Use QR codes for secret sharing
+- Store MFA secrets securely
+- Implement backup codes
+- Add MFA recovery options
 
 ### Testing Token Authentication
 
@@ -121,6 +147,35 @@ Response:
     "error": "Invalid or expired token"
 }
 ```
+
+### Testing Multi-Factor Authentication
+
+The demo includes a built-in TOTP code generator for testing purposes. Here's how to test the MFA feature:
+
+1. Initial Setup:
+   ```
+   Username: admin
+   Password: secret
+   ```
+   - After logging in, you'll see a "Setup MFA" button on the protected page
+   - Click "Setup MFA" to start the MFA setup process
+   - You'll see your MFA secret key and a built-in TOTP generator
+   - Use the generated code to complete the setup
+
+2. Logging in with MFA:
+   - Once MFA is enabled, the login page will require a TOTP code
+   - The login page includes the same TOTP generator for convenience
+   - Enter your username, password, and the current TOTP code
+   - The code updates every 30 seconds
+
+3. Testing different scenarios:
+   - Try logging in without a TOTP code
+   - Try an invalid TOTP code
+   - Try accessing protected pages without MFA verification
+   - Use an expired TOTP code (wait 30 seconds)
+   - Log out and verify the TOTP generator appears on the login page
+
+Note: In a real application, you would use an authenticator app like Google Authenticator or Authy instead of the built-in generator. The demo includes the generator on both the setup and login pages to make testing easier without requiring external apps.
 
 ## Authentication Methods
 

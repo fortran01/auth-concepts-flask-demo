@@ -2,10 +2,11 @@ from flask import Flask, request, Response, render_template, redirect, url_for, 
 from functools import wraps
 import hashlib
 import secrets
-from typing import Set, Dict, Optional
+from typing import Set, Dict, Optional, Tuple
 from werkzeug.security import generate_password_hash, check_password_hash
 import jwt
 from datetime import datetime, timedelta, UTC
+import pyotp
 
 app = Flask(__name__)
 # Set the secret key to a random value, required for session management
@@ -15,9 +16,12 @@ JWT_SECRET = secrets.token_hex(32)
 JWT_ALGORITHM = 'HS256'
 JWT_EXPIRATION_DELTA = timedelta(hours=1)
 
-# Simulated user database
-USERS = {
-    'admin': generate_password_hash('secret')
+# Simulated user database with MFA secrets
+USERS: Dict[str, Dict[str, str]] = {
+    'admin': {
+        'password': generate_password_hash('secret'),
+        'mfa_secret': None  # Will be set when user enables MFA
+    }
 }
 
 # For digest auth
@@ -27,10 +31,18 @@ NONCES: Set[str] = set()
 
 def check_basic_auth(username: str, password: str) -> bool:
     """Check if username/password combination is valid."""
-    stored_password_hash = USERS.get(username)
-    if stored_password_hash and check_password_hash(stored_password_hash, password):
+    user_data = USERS.get(username)
+    if user_data and check_password_hash(user_data['password'], password):
         return True
     return False
+
+def check_mfa(username: str, code: str) -> bool:
+    """Check if MFA code is valid."""
+    user_data = USERS.get(username)
+    if not user_data or not user_data['mfa_secret']:
+        return True  # If MFA is not set up, consider it valid
+    totp = pyotp.TOTP(user_data['mfa_secret'])
+    return totp.verify(code)
 
 def basic_auth_required(f):
     """Decorator for basic authentication"""
@@ -145,6 +157,20 @@ def token_auth_required(f):
         return f(*args, **kwargs)
     return decorated
 
+def mfa_required(f):
+    """Decorator for MFA verification"""
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        if 'username' not in session:
+            flash('Please log in to access this page')
+            return redirect(url_for('login'))
+        
+        if 'mfa_verified' not in session:
+            return redirect(url_for('verify_mfa'))
+            
+        return f(*args, **kwargs)
+    return decorated
+
 @app.route('/')
 def index():
     return 'Welcome to the Authentication Demo! Try /basic or /digest.'
@@ -166,25 +192,85 @@ def login():
     if request.method == 'POST':
         username = request.form.get('username')
         password = request.form.get('password')
+        mfa_code = request.form.get('mfa_code')
         
         if check_basic_auth(username, password):
-            session['username'] = username
-            flash('Successfully logged in!')
-            return redirect(url_for('form_protected'))
+            if not USERS[username]['mfa_secret'] or check_mfa(username, mfa_code):
+                session['username'] = username
+                session['mfa_verified'] = True
+                session['mfa_setup'] = bool(USERS[username]['mfa_secret'])
+                flash('Successfully logged in!')
+                return redirect(url_for('form_protected'))
+            else:
+                flash('Invalid MFA code')
+                return redirect(url_for('login'))
         
         flash('Invalid credentials')
         return redirect(url_for('login'))
     
-    return render_template('login.html')
+    mfa_required = USERS['admin']['mfa_secret'] is not None
+    return render_template('login.html', 
+                         mfa_required=mfa_required,
+                         mfa_secret=USERS['admin']['mfa_secret'] if mfa_required else None)
 
 @app.route('/logout')
 def logout():
     session.pop('username', None)
+    session.pop('mfa_verified', None)
     flash('Successfully logged out')
     return redirect(url_for('login'))
 
+@app.route('/setup-mfa', methods=['GET', 'POST'])
+@login_required
+def setup_mfa():
+    username = session['username']
+    user_data = USERS[username]
+    
+    if request.method == 'POST':
+        code = request.form.get('code')
+        secret = session.get('temp_mfa_secret')
+        
+        if not secret:
+            flash('MFA setup session expired. Please try again.')
+            return redirect(url_for('setup_mfa'))
+        
+        totp = pyotp.TOTP(secret)
+        if totp.verify(code):
+            user_data['mfa_secret'] = secret
+            session.pop('temp_mfa_secret', None)
+            session['mfa_setup'] = True
+            flash('MFA has been successfully set up!')
+            return redirect(url_for('form_protected'))
+        else:
+            flash('Invalid code. Please try again.')
+    
+    if not session.get('temp_mfa_secret'):
+        session['temp_mfa_secret'] = pyotp.random_base32()
+    
+    totp = pyotp.TOTP(session['temp_mfa_secret'])
+    provisioning_uri = totp.provisioning_uri(username, issuer_name="Flask Auth Demo")
+    
+    return render_template('setup_mfa.html', 
+                         secret=session['temp_mfa_secret'],
+                         provisioning_uri=provisioning_uri)
+
+@app.route('/verify-mfa', methods=['GET', 'POST'])
+def verify_mfa():
+    if 'username' not in session:
+        return redirect(url_for('login'))
+    
+    if request.method == 'POST':
+        code = request.form.get('code')
+        if check_mfa(session['username'], code):
+            session['mfa_verified'] = True
+            return redirect(url_for('form_protected'))
+        flash('Invalid MFA code')
+    
+    return render_template('verify_mfa.html')
+
 @app.route('/form')
 @login_required
+@mfa_required
 def form_protected():
     return render_template('protected.html')
 
