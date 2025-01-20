@@ -1,0 +1,64 @@
+# Ignore patterns for search
+ignore:
+  - dist/**
+  - venv/**
+  - __pycache__/**
+  - *.pyc
+  - .pytest_cache/**
+
+# Search paths for code navigation
+search_path:
+  - app/**/*.py
+  - tests/**/*.py
+
+# File associations
+file_associations:
+  "*.py": "python"
+
+# Directory structure tracking
+track_file_structure: true
+structure_file: ".cursor.directory_structure.md"
+
+# README feature list tracking
+track_readme_features: true
+readme_file: "README.md"
+feature_section: "## Features"
+
+# Type hint configuration
+type_hints:
+  enforce: true
+  mypy_config: "mypy.ini"
+  strict_mode: true
+
+# Test configuration
+test:
+  # Test file locations
+  locations:
+    - tests/**/*.py
+    - tests/integration/**/*.py
+  # Auto-update test files when source files change
+  auto_update: true
+  # Test naming convention
+  naming_pattern: "test_*.py"
+  # Test framework configurations
+  framework:
+    unit: "pytest"
+    integration: "pytest"
+  # Test commands
+  command:
+    unit: "pytest tests/unit"
+    integration: "pytest tests/integration"
+  # Coverage configuration
+  coverage:
+    tool: "pytest-cov"
+    min_coverage: 80
+    report_file: "coverage.xml"
+
+# Flask-specific configuration
+flask:
+  app_file: "app/__init__.py"
+  config_file: "config.py"
+  environment:
+    development: "config.DevelopmentConfig"
+    testing: "config.TestingConfig"
+    production: "config.ProductionConfig"
