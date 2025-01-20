@@ -49,3 +49,6 @@ htmlcov/
 *.log
 .env
 config.py
+
+.cursor.directory_structure.md
+mod4.md

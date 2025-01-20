@@ -111,4 +111,64 @@ def test_digest_auth_valid_credentials(client, auth_headers):
     
     response = client.get('/digest', headers=headers)
     assert response.status_code == 200
-    assert b'Hello admin!' in response.data 
+    assert b'Hello admin!' in response.data
+
+
+def test_form_login_page(client):
+    """Test that login page loads correctly"""
+    response = client.get('/login')
+    assert response.status_code == 200
+    assert b'Login' in response.data
+
+
+def test_form_login_success(client):
+    """Test successful form-based login"""
+    response = client.post('/login', data={
+        'username': 'admin',
+        'password': 'secret'
+    }, follow_redirects=True)
+    assert response.status_code == 200
+    assert b'Successfully logged in!' in response.data
+    assert b'Welcome admin!' in response.data
+    assert b'Protected Page' in response.data
+
+
+def test_form_login_invalid_credentials(client):
+    """Test form-based login with invalid credentials"""
+    response = client.post('/login', data={
+        'username': 'admin',
+        'password': 'wrong'
+    }, follow_redirects=True)
+    assert response.status_code == 200
+    assert b'Invalid credentials' in response.data
+    # Verify we're back at the login page
+    assert b'<h3 class="text-center">Login</h3>' in response.data
+
+
+def test_form_protected_without_login(client):
+    """Test accessing protected page without login"""
+    response = client.get('/form', follow_redirects=True)
+    assert response.status_code == 200
+    assert b'Please log in to access this page' in response.data
+    # Verify we're redirected to login page
+    assert b'<h3 class="text-center">Login</h3>' in response.data
+
+
+def test_form_logout(client):
+    """Test logout functionality"""
+    # First login
+    client.post('/login', data={
+        'username': 'admin',
+        'password': 'secret'
+    })
+    
+    # Then logout
+    response = client.get('/logout', follow_redirects=True)
+    assert response.status_code == 200
+    assert b'Successfully logged out' in response.data
+    
+    # Verify we can't access protected page
+    response = client.get('/form', follow_redirects=True)
+    assert b'Please log in to access this page' in response.data
+    # Verify we're at login page
+    assert b'<h3 class="text-center">Login</h3>' in response.data 
