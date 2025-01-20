@@ -19,7 +19,7 @@ This demo shows how to implement Basic and Digest Authentication in Flask.
 - Clean and user-friendly login interface
 - Flash messages for user feedback
 - Built-in TOTP code generator for demo purposes
-- Comprehensive test suite with 99% coverage
+- Comprehensive test suite with 96% coverage
 
 ## Setup
 

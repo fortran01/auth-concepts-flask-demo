@@ -1,13 +1,26 @@
 import pytest
-from app import app
+from app import app, USERS
+
+
+@pytest.fixture(autouse=True)
+def reset_mfa():
+    """Reset MFA state before each test."""
+    USERS['admin']['mfa_secret'] = None
+    yield
 
 
 @pytest.fixture
 def client():
     """Create a test client for the app."""
     app.config['TESTING'] = True
+    app.config['SECRET_KEY'] = 'test_secret_key'  # Set a fixed secret key for testing
+    app.config['SESSION_COOKIE_SECURE'] = False  # Allow session cookie in testing
+    
     with app.test_client() as client:
-        yield client
+        with app.app_context():
+            with client.session_transaction() as sess:
+                sess['_fresh'] = True  # Mark session as fresh
+            yield client
 
 
 @pytest.fixture

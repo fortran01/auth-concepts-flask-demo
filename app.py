@@ -7,6 +7,11 @@ from werkzeug.security import generate_password_hash, check_password_hash
 import jwt
 from datetime import datetime, timedelta, UTC
 import pyotp
+import logging
+
+# Configure logging
+logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
 # Set the secret key to a random value, required for session management
@@ -225,30 +230,40 @@ def logout():
 def setup_mfa():
     username = session['username']
     user_data = USERS[username]
+    logger.debug(f"Setting up MFA for user: {username}")
+    logger.debug(f"Current session: {dict(session)}")
     
     if request.method == 'POST':
         code = request.form.get('code')
         secret = session.get('temp_mfa_secret')
+        logger.debug(f"Verifying MFA setup code: {code}")
+        logger.debug(f"Using temp secret: {secret}")
         
         if not secret:
+            logger.warning("No temporary MFA secret found in session")
             flash('MFA setup session expired. Please try again.')
             return redirect(url_for('setup_mfa'))
         
         totp = pyotp.TOTP(secret)
         if totp.verify(code):
+            logger.info(f"MFA setup successful for user: {username}")
             user_data['mfa_secret'] = secret
             session.pop('temp_mfa_secret', None)
             session['mfa_setup'] = True
             flash('MFA has been successfully set up!')
             return redirect(url_for('form_protected'))
         else:
+            logger.warning(f"Invalid MFA setup code for user: {username}")
             flash('Invalid code. Please try again.')
+            return redirect(url_for('setup_mfa'))
     
     if not session.get('temp_mfa_secret'):
+        logger.debug("Generating new temporary MFA secret")
         session['temp_mfa_secret'] = pyotp.random_base32()
     
     totp = pyotp.TOTP(session['temp_mfa_secret'])
     provisioning_uri = totp.provisioning_uri(username, issuer_name="Flask Auth Demo")
+    logger.debug(f"Generated provisioning URI: {provisioning_uri}")
     
     return render_template('setup_mfa.html', 
                          secret=session['temp_mfa_secret'],
@@ -257,13 +272,21 @@ def setup_mfa():
 @app.route('/verify-mfa', methods=['GET', 'POST'])
 def verify_mfa():
     if 'username' not in session:
+        logger.warning("Attempted MFA verification without being logged in")
         return redirect(url_for('login'))
+    
+    username = session['username']
+    logger.debug(f"Verifying MFA for user: {username}")
+    logger.debug(f"Current session: {dict(session)}")
     
     if request.method == 'POST':
         code = request.form.get('code')
+        logger.debug(f"Verifying MFA code: {code}")
         if check_mfa(session['username'], code):
+            logger.info(f"MFA verification successful for user: {username}")
             session['mfa_verified'] = True
             return redirect(url_for('form_protected'))
+        logger.warning(f"Invalid MFA code for user: {username}")
         flash('Invalid MFA code')
     
     return render_template('verify_mfa.html')
@@ -272,6 +295,9 @@ def verify_mfa():
 @login_required
 @mfa_required
 def form_protected():
+    username = session.get('username')
+    logger.debug(f"Accessing protected page for user: {username}")
+    logger.debug(f"Current session: {dict(session)}")
     return render_template('protected.html')
 
 @app.route('/api/token', methods=['POST'])
