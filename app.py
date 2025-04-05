@@ -5,7 +5,7 @@ import secrets
 from typing import Set, Dict, Optional, Tuple
 from werkzeug.security import generate_password_hash, check_password_hash
 import jwt
-from datetime import datetime, timedelta, UTC
+from datetime import datetime, timedelta, timezone
 import pyotp
 import logging
 
@@ -134,7 +134,7 @@ def generate_token(username: str) -> str:
     """Generate a new JWT token for a user"""
     payload = {
         'username': username,
-        'exp': datetime.now(UTC) + JWT_EXPIRATION_DELTA
+        'exp': datetime.now(timezone.utc) + JWT_EXPIRATION_DELTA
     }
     return jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALGORITHM)
 
