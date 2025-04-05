@@ -1,0 +1,117 @@
+{% extends "base.html" %}
+
+{% block title %}Debug: Decode Session Cookie{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header bg-danger text-white">
+        <h4>Decode Session Cookie (Debug Tool)</h4>
+    </div>
+    <div class="card-body">
+        <div class="alert alert-warning">
+            <h5 class="alert-heading">Warning!</h5>
+            <p>This tool is for demonstration purposes only. It uses the application's secret key to decode session cookies.</p>
+            <p><strong>Important:</strong> Remove this endpoint before deploying to production!</p>
+        </div>
+
+        <div class="mb-4">
+            <h5>How Flask's Client-Side Sessions Work</h5>
+            <p>Flask uses <a href="https://itsdangerous.palletsprojects.com/" target="_blank">itsdangerous</a> to implement client-side sessions:</p>
+            <ol>
+                <li>Session data is serialized to JSON</li>
+                <li>The data is cryptographically signed using the app's <code>secret_key</code></li>
+                <li>The signed data is stored in a cookie on the client's browser</li>
+                <li>When the client makes a request, the server verifies the signature to ensure the data wasn't tampered with</li>
+            </ol>
+        </div>
+
+        <form method="POST">
+            <div class="mb-3">
+                <label for="cookie_value" class="form-label">Paste Session Cookie Value:</label>
+                <textarea id="cookie_value" name="cookie_value" class="form-control" rows="5">{{ cookie_value }}</textarea>
+                <div class="form-text">
+                    To get your session cookie, use your browser's developer tools:
+                    <ol>
+                        <li>Open Dev Tools (F12 or Right-click -> Inspect)</li>
+                        <li>Go to Application/Storage tab</li>
+                        <li>Select Cookies -> localhost:5001</li>
+                        <li>Find and copy the value of the "session" cookie</li>
+                    </ol>
+                </div>
+            </div>
+            
+            <div class="d-flex gap-2">
+                <button type="submit" class="btn btn-primary" onclick="return validateForm()">Decode Cookie</button>
+                <button type="submit" name="generate_cookie" value="yes" class="btn btn-secondary">Generate Test Cookie</button>
+            </div>
+        </form>
+        
+        <script>
+            function validateForm() {
+                const cookieValue = document.getElementById('cookie_value').value.trim();
+                if (cookieValue === '') {
+                    alert('Please paste a session cookie value to decode.');
+                    return false;
+                }
+                return true;
+            }
+        </script>
+        
+        {% if generated_cookie %}
+            <div class="alert alert-success mt-4">
+                <h5 class="alert-heading">Test Cookie Generated</h5>
+                <div class="bg-light p-3 rounded border mb-3">
+                    <code style="word-break: break-all;">{{ generated_cookie }}</code>
+                </div>
+                <p>This cookie contains sample session data.</p>
+            </div>
+        {% endif %}
+
+        {% if cookie_structure %}
+            <div class="card my-4">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0">Cookie Structure</h5>
+                </div>
+                <div class="card-body">
+                    <p>Your cookie has been parsed into its components:</p>
+                    <table class="table table-bordered">
+                        <tr>
+                            <th style="width: 120px;">Component</th>
+                            <th>Value</th>
+                        </tr>
+                        {% for key, value in cookie_structure.items() %}
+                        <tr>
+                            <td><strong>{{ key }}</strong></td>
+                            <td><code>{{ value }}</code></td>
+                        </tr>
+                        {% endfor %}
+                    </table>
+                </div>
+            </div>
+        {% endif %}
+
+        {% if error_message %}
+            <div class="alert alert-danger mt-4">
+                <h5 class="alert-heading">Error:</h5>
+                <p style="white-space: pre-line;">{{ error_message }}</p>
+            </div>
+        {% endif %}
+
+        {% if signature_valid is not none %}
+            <div class="alert {{ 'alert-success' if signature_valid else 'alert-danger' }} mt-4">
+                <h5 class="alert-heading">{{ 'Valid Signature' if signature_valid else 'Invalid Signature' }}</h5>
+                <p>{{ 'The cookie signature is valid and has not been tampered with.' if signature_valid else 'The cookie signature could not be verified. This could mean the cookie was tampered with or the secret key has changed.' }}</p>
+            </div>
+        {% endif %}
+
+        {% if decoded_data is not none %}
+            <div class="alert alert-success mt-4">
+                <h5 class="alert-heading">Decoded Payload:</h5>
+                <div class="bg-light p-3 rounded">
+                    <pre class="mb-0"><code>{{ decoded_data | pprint }}</code></pre>
+                </div>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %} 

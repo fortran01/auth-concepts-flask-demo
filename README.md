@@ -14,6 +14,7 @@ This demo shows how to implement Basic and Digest Authentication in Flask.
 - In-memory nonce management for Digest Authentication
 - Type-annotated Python code for better maintainability
 - Simple demo endpoints to showcase all auth methods
+- Session cookie debugging tool for educational purposes
 - Modern responsive UI with Bootstrap 5
 - Persistent navigation bar with login state
 - Clean and user-friendly login interface
@@ -67,6 +68,44 @@ The tests verify:
   - Protected page access
 - Welcome page accessibility
 
+### Debug Session Cookie Tool
+
+A debugging tool is included to help understand Flask's client-side session implementation:
+
+- `/debug/decode-session` - A tool to analyze and decode Flask session cookies
+  - Decode existing session cookies to view their contents 
+  - Generate sample session cookies with test data
+  - Examine session cookie structure (payload, timestamp, signature)
+  - Verify cookie signatures with the current app secret key
+
+This tool is useful for:
+- Understanding how Flask secures session data
+- Troubleshooting session-related issues
+- Learning about cookie-based authentication
+- Teaching web security concepts
+
+⚠️ **Important**: This endpoint should be disabled in production as it uses the application's secret key.
+
+#### Using the Debug Session Cookie Tool
+
+To use the debug tool:
+
+1. Start the application and log in to create a session
+2. Visit `/debug/decode-session` in your browser
+3. To decode an existing cookie:
+   - Get your session cookie from browser Developer Tools
+   - Paste it into the text area
+   - Click "Decode Cookie"
+4. To generate a test cookie:
+   - Click "Generate Test Cookie" 
+   - The tool will create a sample cookie with predefined session data
+   - You can then examine the cookie structure and contents
+
+This tool visually breaks down the three components of Flask's signed cookies:
+- The base64-encoded session data payload
+- The timestamp indicating when the cookie was created
+- The cryptographic signature that ensures data integrity
+
 ## Usage
 
 The demo provides these endpoints:
@@ -81,6 +120,7 @@ The demo provides these endpoints:
 - `/verify-mfa` - Verify MFA code
 - `/api/token` - Get JWT token using Basic Authentication
 - `/api/protected` - Protected endpoint requiring JWT token
+- `/debug/decode-session` - Debug tool for analyzing Flask session cookies
 
 Default credentials:
 - Username: `admin`

@@ -2,6 +2,7 @@ from flask import Flask, request, Response, render_template, redirect, url_for, 
 from functools import wraps
 import hashlib
 import secrets
+import os
 from typing import Set, Dict, Optional, Tuple
 from werkzeug.security import generate_password_hash, check_password_hash
 import jwt
@@ -13,9 +14,19 @@ import logging
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
+# Explicit debug mode setting
+DEBUG_MODE = True
+
+# Get environment variables for configuration
+FLASK_SECRET_KEY = os.environ.get('FLASK_SECRET_KEY', secrets.token_hex(32))
+FLASK_SESSION_SALT = os.environ.get('FLASK_SESSION_SALT', 'flask-session-cookie')
+
 app = Flask(__name__)
-# Set the secret key to a random value, required for session management
-app.secret_key = secrets.token_hex(32)
+app.debug = DEBUG_MODE  # Explicitly set debug mode
+
+# Set the secret key
+app.secret_key = FLASK_SECRET_KEY
+
 # JWT configuration
 JWT_SECRET = secrets.token_hex(32)
 JWT_ALGORITHM = 'HS256'
@@ -335,6 +346,106 @@ def token_protected():
         'message': f'Hello {payload["username"]}! This endpoint is protected by JWT.',
         'expires': datetime.fromtimestamp(payload["exp"]).isoformat()
     })
+
+# --- !! DANGER !! Debug endpoint for demonstration only - REMOVE BEFORE DEPLOYMENT ---
+@app.route('/debug/decode-session', methods=['GET', 'POST'])
+def debug_decode_session():
+    """
+    DEBUG ONLY: Renders a form to paste a session cookie value and decodes it
+    using the app's secret key.
+    """
+    if not app.debug:
+        flash("This endpoint is only available in debug mode.")
+        return redirect(url_for('index'))
+        
+    decoded_data = None
+    error_message = None
+    cookie_value = ""
+    cookie_structure = None
+    generated_cookie = None
+    signature_valid = None
+    
+    if request.method == 'POST':
+        cookie_value = request.form.get('cookie_value', '')
+        generate_cookie = request.form.get('generate_cookie') == 'yes'
+        
+        # Generate a test cookie
+        if generate_cookie:
+            try:
+                from itsdangerous import URLSafeTimedSerializer
+                # Create a test session with sample data
+                test_data = {
+                    'username': 'admin',
+                    'mfa_verified': True,
+                    'mfa_setup': False
+                }
+                
+                # Use the predefined salt and the current app's secret key
+                salt = FLASK_SESSION_SALT  # Use the predefined salt instead of app.session_interface.salt
+                secret_key = app.secret_key
+                
+                # Generate a new cookie with the current salt and key
+                serializer = URLSafeTimedSerializer(secret_key, salt=salt)
+                generated_cookie = serializer.dumps(test_data)
+                logger.debug(f"Generated test cookie: {generated_cookie}")
+            except Exception as e:
+                error_message = f"An unexpected error occurred: {e}"
+                logger.error(f"Error generating test cookie: {e}", exc_info=True)
+        
+        # Normal cookie decoding
+        elif cookie_value:
+            try:
+                from itsdangerous import URLSafeTimedSerializer, BadSignature, SignatureExpired
+                import base64
+                import json
+                
+                # Parse and display the structure of the cookie
+                try:
+                    parts = cookie_value.split('.')
+                    cookie_structure = {
+                        'payload': parts[0],
+                        'timestamp': parts[1] if len(parts) > 1 else 'Missing',
+                        'signature': parts[2] if len(parts) > 2 else 'Missing'
+                    }
+                except Exception as e:
+                    cookie_structure = {'error': f'Could not parse cookie structure: {e}'}
+                
+                # Create the serializer with the app's current key and salt
+                serializer = URLSafeTimedSerializer(app.secret_key, salt=FLASK_SESSION_SALT)
+                
+                try:
+                    # Try to decode and validate the cookie
+                    decoded_data = serializer.loads(cookie_value)
+                    signature_valid = True
+                except (BadSignature, SignatureExpired) as e:
+                    # If signature check fails, still try to decode the payload for display
+                    signature_valid = False
+                    error_message = str(e)
+                    
+                    # Try to decode the payload part (even if signature is invalid)
+                    if parts[0]:
+                        try:
+                            # Add padding if necessary
+                            payload = parts[0]
+                            payload += '=' * (-len(payload) % 4)
+                            # Decode base64 and then decode JSON
+                            json_str = base64.urlsafe_b64decode(payload).decode('utf-8')
+                            decoded_data = json.loads(json_str)
+                        except Exception as payload_error:
+                            error_message += f"\nCould not decode payload: {payload_error}"
+            except Exception as e:
+                error_message = f"An unexpected error occurred: {e}"
+        else:
+            error_message = "Please paste a cookie value."
+    
+    return render_template('debug_decode_session.html',
+                          decoded_data=decoded_data,
+                          error_message=error_message,
+                          cookie_value=cookie_value,
+                          cookie_structure=cookie_structure,
+                          generated_cookie=generated_cookie,
+                          signature_valid=signature_valid)
+# --- End Debug Endpoint ---
 
 if __name__ == '__main__':
     app.run(debug=True, port=5001) 
