@@ -5,4 +5,9 @@ pytest-cov==2.12.1
 PyJWT==2.8.0
 pyotp==2.9.0
 beautifulsoup4==4.12.3
-types-beautifulsoup4==4.12.0.20240229 
+types-beautifulsoup4==4.12.0.20240229
+Flask-Session==0.4.0
+redis==4.3.4
+fakeredis==2.20.0
+mock==5.1.0
+itsdangerous==2.0.1 

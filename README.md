@@ -35,7 +35,12 @@ source venv/bin/activate  # On Windows: venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
-3. Run the application:
+3. Start Redis (required for session storage):
+```bash
+docker-compose up -d
+```
+
+4. Run the application:
 ```bash
 python app.py
 ```
@@ -105,6 +110,40 @@ This tool visually breaks down the three components of Flask's signed cookies:
 - The base64-encoded session data payload
 - The timestamp indicating when the cookie was created
 - The cryptographic signature that ensures data integrity
+
+## Session Management
+
+The application uses Redis for server-side session storage. This provides several advantages over Flask's default client-side sessions:
+
+1. **Security**: Session data is stored on the server, not in cookies
+2. **Scalability**: Session data can be shared across multiple application instances
+3. **Control**: Sessions can be invalidated server-side (e.g., for logout or security purposes)
+4. **Size**: Not limited by cookie size restrictions
+
+### Session Configuration
+
+Session configuration is defined in `app.py` with these settings:
+
+- `SESSION_TYPE='redis'`: Uses Redis for session storage
+- `SESSION_PERMANENT=False`: Sessions expire when browser is closed
+- `SESSION_USE_SIGNER=True`: Encrypts the session cookie identifier
+- `SESSION_KEY_PREFIX='session:'`: Prefix for session keys in Redis
+- `SESSION_REDIS`: Connection to Redis instance
+
+### Redis Session Inspection
+
+To inspect active sessions in Redis:
+
+```bash
+# Connect to Redis container
+docker exec -it flask_auth_redis redis-cli
+
+# List all session keys
+keys session:*
+
+# View a session's content 
+get session:[key]
+```
 
 ## Usage
 

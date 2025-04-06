@@ -9,6 +9,8 @@ import jwt
 from datetime import datetime, timedelta, timezone
 import pyotp
 import logging
+from flask_session import Session
+import redis
 
 # Configure logging
 logging.basicConfig(level=logging.DEBUG)
@@ -21,11 +23,31 @@ DEBUG_MODE = True
 FLASK_SECRET_KEY = os.environ.get('FLASK_SECRET_KEY', secrets.token_hex(32))
 FLASK_SESSION_SALT = os.environ.get('FLASK_SESSION_SALT', 'flask-session-cookie')
 
+# Redis session configuration
+SESSION_TYPE = 'redis'
+SESSION_PERMANENT = False  # Session dies when browser is closed
+SESSION_USE_SIGNER = True  # Uses the Flask secret key to sign the session ID
+SESSION_KEY_PREFIX = 'session:'
+# Ensure Redis is running before the app starts
+SESSION_REDIS = redis.from_url(os.environ.get('REDIS_URL', 'redis://localhost:6379/0'))
+
 app = Flask(__name__)
 app.debug = DEBUG_MODE  # Explicitly set debug mode
 
 # Set the secret key
 app.secret_key = FLASK_SECRET_KEY
+
+# Apply session configuration to app
+app.config.update(
+    SESSION_TYPE=SESSION_TYPE,
+    SESSION_PERMANENT=SESSION_PERMANENT,
+    SESSION_USE_SIGNER=SESSION_USE_SIGNER,
+    SESSION_KEY_PREFIX=SESSION_KEY_PREFIX,
+    SESSION_REDIS=SESSION_REDIS
+)
+
+# Initialize the session extension
+Session(app)
 
 # JWT configuration
 JWT_SECRET = secrets.token_hex(32)
