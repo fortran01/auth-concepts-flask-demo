@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block title %}Auth0 Login{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h2 class="text-center mb-0">Auth0 Universal Login Demo</h2>
+                </div>
+                <div class="card-body">
+                    <div class="text-center mb-4">
+                        <svg width="150" height="50" viewBox="0 0 150 50" xmlns="http://www.w3.org/2000/svg" class="mb-3">
+                            <path fill="#EB5424" d="M119.60,20.80h11.50v1.30h-10.10v6.20h9.50v1.30h-9.50v7.30h10.20v1.30h-11.60V20.80z M104.10,38.40l5.30-7.10l-4.80-6.80h1.70l4,5.70l4-5.70h1.60l-4.80,6.70l5.30,7.10h-1.80l-4.30-6l-4.30,6H104.10z M89.50,20.80h1.60l7.10,17.50h-1.60l-2-5h-8.40l-2,5h-1.50L89.50,20.80z M94.10,32l-3.7-9.20L86.80,32H94.10z M77.60,30c3.30-0.70,5-2.40,5-5.20c0-3.20-2.20-4.90-6.10-4.90H70v17.50h1.40V30.40h4.60c0.30,0,0.60,0,0.80,0l4.20,7.90h1.60L77.60,30z M71.40,29.30v-8.10h4.70c3.300.1,4.90,1.30,4.90,3.80c0,2.400-1.600,4.100-4.90,4.10h-4.70V29.30z M59.40,20.80h1.40v16.20h9.300v1.30H59.40V20.80z M48.60,20.80h1.40v17.50h-1.40V20.80z M35.30,20.80h1.40v8.20h10.30v-8.20h1.40v17.50h-1.40v-8h-10.30v8h-1.400V20.80z"/>
+                            <path fill="#16214D" d="M29.90,20.80v10.50c0,3.80-2.50,7-7.30,7s-7.30-3.200-7.30-7V20.80h1.40v10.50c0,3.90,2.50,5.80,5.900,5.80s5.90-1.900,5.90-5.80V20.80H29.90z"/>
+                            <path fill="#EB5424" d="M11.90,27.40c0,5.70-4.10,9.600-9.300,9.60H0V18h2.600C7.800,18,11.900,21.70,11.90,27.40z M9.30,27.40c0-4.90-3.400-7.400-6.800-7.40H2.600v14.70h0C5.90,34.70,9.30,32.10,9.30,27.40z"/>
+                        </svg>
+                        <h4>Secure Authentication with Auth0</h4>
+                        <p class="text-muted">Click the button below to sign in or sign up using Auth0's Universal Login.</p>
+                    </div>
+                    
+                    <div class="d-grid gap-2">
+                        <a href="/auth0/login" class="btn btn-primary btn-lg">
+                            <i class="bi bi-box-arrow-in-right me-2"></i>Login with Auth0
+                        </a>
+                    </div>
+                    
+                    <div class="mt-4">
+                        <div class="card">
+                            <div class="card-header bg-light">
+                                <h5 class="mb-0">What is Auth0 Universal Login?</h5>
+                            </div>
+                            <div class="card-body">
+                                <p>Auth0 Universal Login is a centralized authentication service that:</p>
+                                <ul>
+                                    <li>Provides a single login page for all your applications</li>
+                                    <li>Supports multiple identity providers (social, enterprise, etc.)</li>
+                                    <li>Handles complex authentication flows like multi-factor authentication</li>
+                                    <li>Implements security best practices like anomaly detection</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

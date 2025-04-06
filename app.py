@@ -6,6 +6,7 @@ from functools import wraps
 import hashlib
 import secrets
 import os
+import json
 from typing import Set, Dict, Optional, Tuple, Any, List
 from werkzeug.security import generate_password_hash, check_password_hash
 import jwt
@@ -15,6 +16,12 @@ import logging
 from flask_session import Session
 import redis
 import ldap
+from urllib.parse import quote_plus, urlencode
+from authlib.integrations.flask_client import OAuth
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 # Configure logging
 logging.basicConfig(level=logging.DEBUG)
@@ -63,6 +70,18 @@ Session(app)
 JWT_SECRET = secrets.token_hex(32)
 JWT_ALGORITHM = 'HS256'
 JWT_EXPIRATION_DELTA = timedelta(hours=1)
+
+# Auth0 configuration
+oauth = OAuth(app)
+oauth.register(
+    "auth0",
+    client_id=os.environ.get("AUTH0_CLIENT_ID"),
+    client_secret=os.environ.get("AUTH0_CLIENT_SECRET"),
+    client_kwargs={
+        "scope": "openid profile email",
+    },
+    server_metadata_url=f'https://{os.environ.get("AUTH0_DOMAIN")}/.well-known/openid-configuration',
+)
 
 # Simulated user database with MFA secrets
 USERS: Dict[str, Dict[str, str]] = {
@@ -837,6 +856,72 @@ def ldap_logout():
     
     flash('Successfully logged out of LDAP session', 'success')
     return redirect(url_for('index'))
+
+
+# Auth0 routes
+@app.route('/auth0-demo')
+def auth0_demo():
+    return render_template('auth0_login.html')
+
+
+@app.route('/auth0/login')
+def auth0_login():
+    return oauth.auth0.authorize_redirect(
+        redirect_uri=url_for('auth0_callback', _external=True)
+    )
+
+
+@app.route('/auth0/callback')
+def auth0_callback():
+    # Get the access token
+    token = oauth.auth0.authorize_access_token()
+    
+    # Use the token to get user information from Auth0's userinfo endpoint
+    userinfo = token.get('userinfo')
+    if not userinfo:
+        # If userinfo is not in the token response, fetch it separately
+        resp = oauth.auth0.get('userinfo')
+        userinfo = resp.json()
+        token['userinfo'] = userinfo
+    
+    # Store the user information in the session under auth0_user key
+    # to avoid conflicts with existing 'user' session key
+    session['auth0_user'] = token
+    
+    flash('Successfully logged in via Auth0!')
+    return redirect('/auth0/profile')
+
+
+@app.route('/auth0/profile')
+def auth0_profile():
+    auth0_user = session.get('auth0_user')
+    if not auth0_user:
+        flash('Please log in with Auth0 first')
+        return redirect('/auth0-demo')
+    
+    return render_template(
+        'auth0_profile.html',
+        auth0_user=auth0_user,
+        user_info_pretty=json.dumps(auth0_user, indent=4)
+    )
+
+
+@app.route('/auth0/logout')
+def auth0_logout():
+    # Clear the Auth0 user from session
+    session.pop('auth0_user', None)
+    
+    # Redirect to Auth0 logout endpoint which then redirects back to home page
+    return redirect(
+        f"https://{os.environ.get('AUTH0_DOMAIN')}/v2/logout?" +
+        urlencode(
+            {
+                "returnTo": url_for('index', _external=True),
+                "client_id": os.environ.get('AUTH0_CLIENT_ID'),
+            },
+            quote_via=quote_plus,
+        )
+    )
 
 
 if __name__ == '__main__':

@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+{% block title %}Auth0 Profile{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-10">
+            <div class="card mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h2 class="mb-0">Auth0 User Profile</h2>
+                </div>
+                
+                {% if auth0_user %}
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-3 text-center">
+                            {% if auth0_user.userinfo.picture %}
+                            <img src="{{ auth0_user.userinfo.picture }}" class="img-fluid rounded-circle mb-3" style="max-width: 150px; border: 3px solid #007bff;" alt="Profile Picture">
+                            {% else %}
+                            <div class="bg-secondary text-white rounded-circle d-flex align-items-center justify-content-center mb-3" style="width: 150px; height: 150px; font-size: 4rem; margin: 0 auto;">
+                                <i class="bi bi-person-fill"></i>
+                            </div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-9">
+                            <h3>{{ auth0_user.userinfo.name }}</h3>
+                            <p class="text-muted">{{ auth0_user.userinfo.email }}</p>
+                            
+                            <h5 class="mt-4">User Details</h5>
+                            <table class="table table-bordered">
+                                <tbody>
+                                    <tr>
+                                        <th style="width: 30%">User ID</th>
+                                        <td>{{ auth0_user.userinfo.sub }}</td>
+                                    </tr>
+                                    {% if auth0_user.userinfo.nickname %}
+                                    <tr>
+                                        <th>Nickname</th>
+                                        <td>{{ auth0_user.userinfo.nickname }}</td>
+                                    </tr>
+                                    {% endif %}
+                                    {% if auth0_user.userinfo.updated_at %}
+                                    <tr>
+                                        <th>Last Updated</th>
+                                        <td>{{ auth0_user.userinfo.updated_at }}</td>
+                                    </tr>
+                                    {% endif %}
+                                    {% if auth0_user.userinfo.email_verified is defined %}
+                                    <tr>
+                                        <th>Email Verified</th>
+                                        <td>
+                                            {% if auth0_user.userinfo.email_verified %}
+                                            <span class="badge bg-success">Yes</span>
+                                            {% else %}
+                                            <span class="badge bg-warning">No</span>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                    {% endif %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-4">
+                        <h5>Authentication Information</h5>
+                        <pre class="bg-light p-3" style="max-height: 300px; overflow-y: auto;">{{ user_info_pretty }}</pre>
+                    </div>
+                    
+                    <div class="d-flex justify-content-between mt-4">
+                        <a href="/" class="btn btn-secondary">
+                            <i class="bi bi-arrow-left"></i> Back to Home
+                        </a>
+                        <a href="/auth0/logout" class="btn btn-danger">
+                            <i class="bi bi-box-arrow-right"></i> Logout
+                        </a>
+                    </div>
+                </div>
+                {% else %}
+                <div class="card-body">
+                    <div class="alert alert-warning">
+                        <h4 class="alert-heading">No user information available</h4>
+                        <p>You are not currently logged in with Auth0 or your session has expired.</p>
+                        <hr>
+                        <a href="/auth0/login" class="btn btn-primary">Login with Auth0</a>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 
