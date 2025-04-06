@@ -145,6 +145,19 @@ keys session:*
 get session:[key]
 ```
 
+### Redis Session Debug Tool
+
+A debug endpoint is available to view and decode Redis session data:
+
+- `/debug/redis-session` - Provides JSON output with:
+  - Your current session ID
+  - Your current session data
+  - All sessions stored in Redis
+
+This tool automatically decodes the binary pickle data stored in Redis into readable JSON format, showing you exactly what data is stored in your session.
+
+⚠️ **Important**: This endpoint should be disabled in production as it exposes all session data.
+
 ## Usage
 
 The demo provides these endpoints:
@@ -160,6 +173,7 @@ The demo provides these endpoints:
 - `/api/token` - Get JWT token using Basic Authentication
 - `/api/protected` - Protected endpoint requiring JWT token
 - `/debug/decode-session` - Debug tool for analyzing Flask session cookies
+- `/debug/redis-session` - Debug tool for viewing Redis session data
 
 Default credentials:
 - Username: `admin`

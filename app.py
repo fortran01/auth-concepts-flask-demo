@@ -467,7 +467,63 @@ def debug_decode_session():
                           cookie_structure=cookie_structure,
                           generated_cookie=generated_cookie,
                           signature_valid=signature_valid)
-# --- End Debug Endpoint ---
+
+@app.route('/debug/redis-session')
+def debug_redis_session():
+    """Debug endpoint to decode Redis session data."""
+    if not app.debug:
+        # Only available in debug mode
+        return redirect(url_for('index'))
+    
+    # Get current session ID from cookie
+    session_id = request.cookies.get(app.config.get('SESSION_COOKIE_NAME', 'session'))
+    
+    # Get current session data
+    current_session = dict(session)
+    
+    # Get all session keys from Redis
+    redis_client = SESSION_REDIS
+    session_keys = redis_client.keys(f"{SESSION_KEY_PREFIX}*")
+    
+    # Extract the clean session ID without signature (if present)
+    clean_session_id = None
+    if session_id:
+        if '.' in session_id:  # Signed session ID format
+            clean_session_id = session_id.split('.')[0]
+        else:
+            clean_session_id = session_id
+    
+    # Decode all sessions
+    sessions = {}
+    matched_session = None
+    
+    for key in session_keys:
+        try:
+            # Get raw data from Redis
+            raw_data = redis_client.get(key)
+            
+            # Decode using pickle
+            import pickle
+            session_data = pickle.loads(raw_data)
+            
+            # Add to sessions dictionary
+            key_str = key.decode('utf-8') if isinstance(key, bytes) else key
+            sessions[key_str] = session_data
+            
+            # If this is the current session, save it specifically
+            redis_key = f"{SESSION_KEY_PREFIX}{clean_session_id}"
+            if key_str == redis_key:
+                matched_session = session_data
+        except Exception as e:
+            sessions[key] = f"Error decoding: {str(e)}"
+    
+    # Return as JSON
+    return jsonify({
+        'current_session_id': session_id,
+        'clean_session_id': clean_session_id,
+        'current_session_from_redis': matched_session,
+        'all_sessions': sessions
+    })
 
 if __name__ == '__main__':
     app.run(debug=True, port=5001) 
