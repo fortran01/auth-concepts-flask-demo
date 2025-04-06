@@ -1,6 +1,7 @@
 import pytest
 from app import app, USERS
 import fakeredis
+from flask_session import Session
 
 
 @pytest.fixture(autouse=True)
@@ -19,18 +20,30 @@ def redis_mock():
 @pytest.fixture
 def client(monkeypatch, redis_mock):
     """Create a test client for the app."""
+    # Save original Redis client to restore later
+    original_session_redis = app.config.get('SESSION_REDIS')
+    
+    # Configure app for testing
     app.config['TESTING'] = True
     app.config['SECRET_KEY'] = 'test_secret_key'  # Set a fixed secret key for testing
     app.config['SESSION_COOKIE_SECURE'] = False  # Allow session cookie in testing
     
-    # Replace the real Redis with our fake one for all tests
-    monkeypatch.setattr('app.SESSION_REDIS', redis_mock)
+    # Replace the Redis client with the mock
+    app.config['SESSION_REDIS'] = redis_mock
+    
+    # Re-initialize the Flask-Session with our fake Redis
+    Session(app)
     
     with app.test_client() as client:
         with app.app_context():
             with client.session_transaction() as sess:
                 sess['_fresh'] = True  # Mark session as fresh
             yield client
+    
+    # Restore original Redis client after tests
+    app.config['SESSION_REDIS'] = original_session_redis
+    # Re-initialize the session with the original Redis client
+    Session(app)
 
 
 @pytest.fixture

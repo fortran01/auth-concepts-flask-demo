@@ -5,6 +5,8 @@ import json
 import pyotp
 from bs4 import BeautifulSoup
 import logging
+import fakeredis
+from flask_session import Session
 
 # Configure logging
 logging.basicConfig(level=logging.DEBUG)
@@ -15,8 +17,26 @@ logger = logging.getLogger(__name__)
 def client():
     """Create a test client for the app."""
     app.config['TESTING'] = True
+    
+    # Create fake Redis for testing
+    redis_mock = fakeredis.FakeStrictRedis()
+    
+    # Save original Redis client to restore later
+    original_session_redis = app.config.get('SESSION_REDIS')
+    
+    # Replace with fake Redis
+    app.config['SESSION_REDIS'] = redis_mock
+    
+    # Re-initialize the Flask-Session with our fake Redis
+    Session(app)
+    
     with app.test_client() as client:
         yield client
+    
+    # Restore original Redis client after tests
+    app.config['SESSION_REDIS'] = original_session_redis
+    # Re-initialize the session with the original Redis client
+    Session(app)
 
 
 def test_index_no_auth(client):

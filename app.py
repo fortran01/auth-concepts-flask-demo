@@ -546,7 +546,8 @@ def debug_redis_session():
     current_session = dict(session)
     
     # Get all session keys from Redis
-    redis_client = SESSION_REDIS
+    # Use the Redis client from app config instead of global SESSION_REDIS
+    redis_client = app.config.get('SESSION_REDIS')
     session_keys = redis_client.keys(f"{SESSION_KEY_PREFIX}*")
     
     # Extract the clean session ID without signature (if present)

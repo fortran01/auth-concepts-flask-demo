@@ -4,6 +4,8 @@ from app import app, FLASK_SESSION_SALT
 from itsdangerous import URLSafeTimedSerializer
 from bs4 import BeautifulSoup
 import base64
+import fakeredis
+from flask_session import Session
 
 
 @pytest.fixture
@@ -14,8 +16,25 @@ def client():
     app.config['SECRET_KEY'] = 'test_secret_key'
     app.config['DEBUG'] = True  # Ensure debug mode is enabled for testing
     
+    # Create fake Redis for testing
+    redis_mock = fakeredis.FakeStrictRedis()
+    
+    # Save original Redis client to restore later
+    original_session_redis = app.config.get('SESSION_REDIS')
+    
+    # Replace with fake Redis
+    app.config['SESSION_REDIS'] = redis_mock
+    
+    # Re-initialize the Flask-Session with our fake Redis
+    Session(app)
+    
     with app.test_client() as client:
         yield client
+    
+    # Restore original Redis client after tests
+    app.config['SESSION_REDIS'] = original_session_redis
+    # Re-initialize the session with the original Redis client
+    Session(app)
 
 
 def test_debug_decode_session_page_accessible(client):
@@ -34,19 +53,28 @@ def test_debug_decode_session_page_not_accessible_in_production():
     app_module.DEBUG_MODE = False
     app.config['DEBUG'] = False
     
-    with app.test_client() as client:
-        # First check that it redirects without follow_redirects
-        response = client.get('/debug/decode-session')
-        assert response.status_code == 302  # Redirect status code
-        
-        # Now check with follow_redirects that we end up at the index page
-        response = client.get('/debug/decode-session', follow_redirects=True)
-        assert response.status_code == 200
-        assert b'Authentication Concepts Demo' in response.data
+    # Set up fake Redis for this test
+    fake_redis = fakeredis.FakeRedis()
+    original_session_redis = app.config.get('SESSION_REDIS')
+    app.config['SESSION_REDIS'] = fake_redis
+    Session(app)
     
-    # Restore debug mode
-    app_module.DEBUG_MODE = original_debug_mode
-    app.config['DEBUG'] = True
+    try:
+        with app.test_client() as client:
+            # First check that it redirects without follow_redirects
+            response = client.get('/debug/decode-session')
+            assert response.status_code == 302  # Redirect status code
+            
+            # Now check with follow_redirects that we end up at the index page
+            response = client.get('/debug/decode-session', follow_redirects=True)
+            assert response.status_code == 200
+            assert b'Authentication Concepts Demo' in response.data
+    finally:
+        # Restore debug mode and Redis client
+        app_module.DEBUG_MODE = original_debug_mode
+        app.config['DEBUG'] = True
+        app.config['SESSION_REDIS'] = original_session_redis
+        Session(app)
 
 
 def test_generate_test_cookie(client):
