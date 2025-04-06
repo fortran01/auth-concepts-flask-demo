@@ -1,7 +1,6 @@
 import pytest
 from app import app, USERS
 import fakeredis
-import mock
 
 
 @pytest.fixture(autouse=True)
@@ -12,20 +11,26 @@ def reset_mfa():
 
 
 @pytest.fixture
-def client():
+def redis_mock():
+    """Create a fake Redis client for testing."""
+    return fakeredis.FakeStrictRedis()
+
+
+@pytest.fixture
+def client(monkeypatch, redis_mock):
     """Create a test client for the app."""
     app.config['TESTING'] = True
     app.config['SECRET_KEY'] = 'test_secret_key'  # Set a fixed secret key for testing
     app.config['SESSION_COOKIE_SECURE'] = False  # Allow session cookie in testing
     
-    # Mock Redis for testing
-    redis_mock = fakeredis.FakeStrictRedis()
-    with mock.patch('flask_session.RedisSessionInterface._get_connection', return_value=redis_mock):
-        with app.test_client() as client:
-            with app.app_context():
-                with client.session_transaction() as sess:
-                    sess['_fresh'] = True  # Mark session as fresh
-                yield client
+    # Replace the real Redis with our fake one for all tests
+    monkeypatch.setattr('app.SESSION_REDIS', redis_mock)
+    
+    with app.test_client() as client:
+        with app.app_context():
+            with client.session_transaction() as sess:
+                sess['_fresh'] = True  # Mark session as fresh
+            yield client
 
 
 @pytest.fixture

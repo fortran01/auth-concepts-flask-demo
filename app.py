@@ -517,10 +517,23 @@ def debug_redis_session():
         except Exception as e:
             sessions[key] = f"Error decoding: {str(e)}"
     
+    # If we didn't find the session but we have a session ID, try to manually load it
+    if matched_session is None and clean_session_id:
+        try:
+            # Try direct access through Redis
+            direct_key = f"{SESSION_KEY_PREFIX}{clean_session_id}"
+            raw_data = redis_client.get(direct_key)
+            if raw_data:
+                import pickle
+                matched_session = pickle.loads(raw_data)
+        except Exception as e:
+            pass
+    
     # Return as JSON
     return jsonify({
         'current_session_id': session_id,
         'clean_session_id': clean_session_id,
+        'current_session': current_session,
         'current_session_from_redis': matched_session,
         'all_sessions': sessions
     })
