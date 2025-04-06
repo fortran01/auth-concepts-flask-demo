@@ -347,4 +347,52 @@ def test_comprehensive_cors():
         data = json.loads(response.data)
         assert data['status'] == 'success', f"Response data incorrect for {test_case['description']}"
         assert 'message' in data, f"Response missing message for {test_case['description']}"
-        assert 'data' in data, f"Response missing data array for {test_case['description']}" 
+        assert 'data' in data, f"Response missing data array for {test_case['description']}"
+
+
+def test_complex_preflight_with_custom_header(api_client):
+    """
+    Test that a complex request with X-Custom-Header works correctly
+    This specifically tests the scenario that was fixed in the api_server.py
+    """
+    # 1. Test the preflight OPTIONS request with X-Custom-Header
+    preflight_response = api_client.options(
+        '/api/data-with-preflight',
+        headers={
+            'Origin': 'http://localhost:5003',
+            'Access-Control-Request-Method': 'GET',
+            'Access-Control-Request-Headers': 'Content-Type, X-Custom-Header'
+        }
+    )
+    
+    # Verify the preflight response allows our custom header
+    assert preflight_response.status_code == 200
+    assert 'Access-Control-Allow-Origin' in preflight_response.headers
+    assert preflight_response.headers['Access-Control-Allow-Origin'] == '*'
+    assert 'Access-Control-Allow-Methods' in preflight_response.headers
+    assert 'GET' in preflight_response.headers['Access-Control-Allow-Methods']
+    
+    # Check that both headers are allowed
+    assert 'Access-Control-Allow-Headers' in preflight_response.headers
+    allow_headers = preflight_response.headers['Access-Control-Allow-Headers']
+    assert 'Content-Type' in allow_headers
+    assert 'X-Custom-Header' in allow_headers
+    
+    # 2. Test the actual request with the custom header (after preflight success)
+    response = api_client.get(
+        '/api/data-with-preflight',
+        headers={
+            'Origin': 'http://localhost:5003',
+            'Content-Type': 'application/json',
+            'X-Custom-Header': 'custom-value'
+        }
+    )
+    
+    # Verify the response to the actual request
+    assert response.status_code == 200
+    data = json.loads(response.data)
+    assert data['status'] == 'success'
+    assert data['message'] == 'This is data from the API server (with preflight handling)'
+    assert data['data'] == [1, 2, 3, 4, 5]
+    assert 'Access-Control-Allow-Origin' in response.headers
+    assert response.headers['Access-Control-Allow-Origin'] == '*' 
