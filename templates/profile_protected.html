@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+
+{% block title %}User Profile (Protected) - Flask Auth Demo{% endblock %}
+
+{% block content %}
+<div class="card mb-4">
+    <div class="card-header bg-success text-white">
+        <h3>User Profile (Protected from CSRF)</h3>
+    </div>
+    <div class="card-body">
+        <div class="alert alert-success">
+            <strong>Note:</strong> This page is protected against CSRF attacks using an anti-CSRF token.
+        </div>
+        
+        <h4>Welcome {{ session['username'] }}!</h4>
+        <p>Your current email address is: <strong>{{ email }}</strong></p>
+        
+        <div class="card mt-4">
+            <div class="card-header">
+                <h5>Update Email Address</h5>
+            </div>
+            <div class="card-body">
+                <form action="{{ url_for('update_email_protected') }}" method="POST">
+                    <div class="form-group">
+                        <label for="email">New Email Address:</label>
+                        <input type="email" class="form-control" id="email" name="email" value="{{ email }}" required>
+                    </div>
+                    <!-- CSRF Protection: Hidden field with the CSRF token -->
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit" class="btn btn-primary mt-3">Update Email</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header bg-info text-white">
+        <h3>Protection Explanation</h3>
+    </div>
+    <div class="card-body">
+        <p>
+            This page is <strong>protected against CSRF attacks</strong> using an anti-CSRF token. 
+            Notice the hidden field in the form:
+        </p>
+        <pre><code>&lt;input type="hidden" name="csrf_token" value="{{ csrf_token() }}"&gt;</code></pre>
+        <p>
+            When the form is submitted, the server verifies that the token in the form matches the one in the session.
+            This prevents CSRF attacks because a malicious site cannot know or guess this token.
+        </p>
+        <p>
+            Try visiting the <a href="{{ url_for('malicious_site') }}" target="_blank">malicious site</a> now. 
+            Your email will not be changed because the forged request does not include a valid CSRF token.
+        </p>
+        <p>
+            To see the vulnerable version of this page, visit the 
+            <a href="{{ url_for('profile') }}">unprotected version</a>.
+        </p>
+        <p>
+            <a href="{{ url_for('csrf_demo') }}" class="btn btn-info">Back to CSRF Demo</a>
+        </p>
+    </div>
+</div>
+
+<div class="card mt-4">
+    <div class="card-header bg-secondary text-white">
+        <h3>CSRF Token Details</h3>
+    </div>
+    <div class="card-body">
+        <h4>Current CSRF Token</h4>
+        <p>For educational purposes only, here is your current CSRF token:</p>
+        <div class="alert alert-secondary">
+            <code>{{ csrf_token() }}</code>
+        </div>
+        <p>
+            This token is unique to your session and changes periodically. It is stored in your session on the server
+            and is also embedded in the form as a hidden field. When the form is submitted, the server checks that the
+            token in the form matches the one in your session.
+        </p>
+        <p>
+            In a real application, you would never display this token to the user, but we show it here for educational purposes.
+        </p>
+    </div>
+</div>
+{% endblock %} 

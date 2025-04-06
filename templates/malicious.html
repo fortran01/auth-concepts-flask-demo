@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+
+{% block title %}Malicious Site - CSRF Demo{% endblock %}
+
+{% block content %}
+<div class="card mb-4">
+    <div class="card-header bg-danger text-white">
+        <h3>Malicious Site (Demo)</h3>
+    </div>
+    <div class="card-body">
+        <div class="alert alert-danger">
+            <strong>Note:</strong> This page simulates a malicious website that attempts to exploit a CSRF vulnerability.
+        </div>
+        
+        <h4>Welcome to this harmless-looking website!</h4>
+        <p>This could be any site on the internet that tries to trick a user. The user might visit this site while being logged into the vulnerable application in another tab or window.</p>
+        
+        <div class="mt-4">
+            <h5>Cute Cat Pictures</h5>
+            <div class="row">
+                <div class="col-md-4">
+                    <img src="https://placekitten.com/300/200" class="img-fluid rounded" alt="Cute cat">
+                </div>
+                <div class="col-md-4">
+                    <img src="https://placekitten.com/301/200" class="img-fluid rounded" alt="Cute cat">
+                </div>
+                <div class="col-md-4">
+                    <img src="https://placekitten.com/302/200" class="img-fluid rounded" alt="Cute cat">
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header bg-info text-white">
+        <h3>What's Happening Behind the Scenes</h3>
+    </div>
+    <div class="card-body">
+        <p>
+            This page contains a hidden form that is automatically submitted when the page loads. The form targets the vulnerable application's email update endpoint.
+        </p>
+        <p>
+            If you are currently logged into the vulnerable application, this attack will change your email to <code>hacked@malicious.com</code> without your knowledge or consent.
+        </p>
+        <p>
+            However, the attack will only succeed against the <a href="{{ url_for('profile') }}" target="_blank">vulnerable profile page</a>. 
+            It will fail against the <a href="{{ url_for('profile_protected') }}" target="_blank">protected profile page</a> because the protected page requires a valid CSRF token.
+        </p>
+        <p>
+            <a href="{{ url_for('csrf_demo') }}" class="btn btn-info">Back to CSRF Demo</a>
+        </p>
+    </div>
+</div>
+
+<!-- Hidden form that gets auto-submitted -->
+<form id="csrf-form" action="{{ url_for('update_email', _external=True) }}" method="POST" style="display: none;">
+    <input type="email" name="email" value="hacked@malicious.com">
+</form>
+
+<!-- JavaScript to auto-submit the form -->
+<script>
+    // Auto-submit the form when the page loads
+    window.onload = function() {
+        // Show an alert to explain what's happening (in a real attack, this wouldn't be shown)
+        alert("This page contains a hidden form that will be automatically submitted.\n\nIf you are logged into the vulnerable application, this will change your email to 'hacked@malicious.com' without your consent.\n\nClick OK to proceed with the demonstration.");
+        
+        // Submit the form
+        document.getElementById('csrf-form').submit();
+    };
+</script>
+{% endblock %} 

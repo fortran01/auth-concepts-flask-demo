@@ -603,5 +603,80 @@ def debug_redis_session():
         'all_sessions': sessions
     })
 
+# CSRF Demo Routes
+@app.route('/profile', methods=['GET'])
+@login_required
+@mfa_required
+def profile():
+    """User profile page with a form to update email (vulnerable to CSRF)"""
+    # Default email for demo purposes
+    email = session.get('email', 'user@example.com')
+    return render_template('profile.html', email=email, csrf_protected=False)
+
+@app.route('/update-email', methods=['POST'])
+@login_required
+@mfa_required
+def update_email():
+    """Endpoint to update email (vulnerable to CSRF)"""
+    new_email = request.form.get('email')
+    if new_email:
+        # Store the new email in the session for demo purposes
+        session['email'] = new_email
+        flash('Email updated successfully!', 'success')
+    else:
+        flash('Email cannot be empty', 'danger')
+    return redirect(url_for('profile'))
+
+# CSRF Token generation function
+def generate_csrf_token():
+    """Generate a CSRF token and store it in the session"""
+    if 'csrf_token' not in session:
+        session['csrf_token'] = secrets.token_hex(32)
+    return session['csrf_token']
+
+@app.route('/profile-protected', methods=['GET'])
+@login_required
+@mfa_required
+def profile_protected():
+    """User profile page with CSRF protection"""
+    # Default email for demo purposes
+    email = session.get('email', 'user@example.com')
+    return render_template('profile_protected.html', email=email, csrf_protected=True)
+
+@app.route('/update-email-protected', methods=['POST'])
+@login_required
+@mfa_required
+def update_email_protected():
+    """Endpoint to update email with CSRF protection"""
+    # Check CSRF token
+    token = request.form.get('csrf_token')
+    if not token or token != session.get('csrf_token'):
+        flash('Invalid CSRF token. This could be a cross-site request forgery attempt!', 'danger')
+        return redirect(url_for('profile_protected'))
+    
+    new_email = request.form.get('email')
+    if new_email:
+        # Store the new email in the session for demo purposes
+        session['email'] = new_email
+        flash('Email updated successfully!', 'success')
+    else:
+        flash('Email cannot be empty', 'danger')
+    return redirect(url_for('profile_protected'))
+
+@app.route('/csrf-demo')
+def csrf_demo():
+    """Page explaining the CSRF demo with links to the vulnerable and protected pages"""
+    return render_template('csrf_demo.html')
+
+@app.route('/malicious-site')
+def malicious_site():
+    """Simulated malicious site that attempts to exploit CSRF vulnerability"""
+    return render_template('malicious.html')
+
+# Make CSRF token available to all templates
+@app.context_processor
+def inject_csrf_token():
+    return dict(csrf_token=generate_csrf_token)
+
 if __name__ == '__main__':
-    app.run(debug=True, port=5001) 
+    app.run(host='0.0.0.0', port=5001) 

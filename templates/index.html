@@ -80,6 +80,24 @@
                         </div>
                     </div>
                 </div>
+                
+                <div class="mt-4">
+                    <h4>Security Vulnerability Demos</h4>
+                    <p>Learn about common web application security vulnerabilities:</p>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="card mb-3">
+                                <div class="card-body">
+                                    <h5 class="card-title">CSRF Vulnerability</h5>
+                                    <p class="card-text">
+                                        Demonstration of Cross-Site Request Forgery attacks and how to prevent them with anti-CSRF tokens.
+                                    </p>
+                                    <a href="{{ url_for('csrf_demo') }}" class="btn btn-outline-danger btn-sm">Try CSRF Demo</a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
             <div class="card-footer text-muted">
                 <p class="mb-0 text-center">This is an educational demo. <strong>Do not use in production</strong> without proper security review.</p>

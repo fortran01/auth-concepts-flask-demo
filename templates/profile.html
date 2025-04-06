@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+
+{% block title %}User Profile - Flask Auth Demo{% endblock %}
+
+{% block content %}
+<div class="card mb-4">
+    <div class="card-header bg-danger text-white">
+        <h3>User Profile (Vulnerable to CSRF)</h3>
+    </div>
+    <div class="card-body">
+        <div class="alert alert-warning">
+            <strong>Warning:</strong> This page is intentionally vulnerable to CSRF attacks for demonstration purposes.
+        </div>
+        
+        <h4>Welcome {{ session['username'] }}!</h4>
+        <p>Your current email address is: <strong>{{ email }}</strong></p>
+        
+        <div class="card mt-4">
+            <div class="card-header">
+                <h5>Update Email Address</h5>
+            </div>
+            <div class="card-body">
+                <form action="{{ url_for('update_email') }}" method="POST">
+                    <div class="form-group">
+                        <label for="email">New Email Address:</label>
+                        <input type="email" class="form-control" id="email" name="email" value="{{ email }}" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary mt-3">Update Email</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header bg-info text-white">
+        <h3>Vulnerability Explanation</h3>
+    </div>
+    <div class="card-body">
+        <p>
+            This page is <strong>vulnerable to CSRF attacks</strong> because it does not implement any protection mechanism.
+            If you visit the <a href="{{ url_for('malicious_site') }}" target="_blank">malicious site</a> while logged in, 
+            your email will be changed without your consent.
+        </p>
+        <p>
+            To see how this vulnerability can be fixed, visit the 
+            <a href="{{ url_for('profile_protected') }}">protected version</a> of this page.
+        </p>
+        <p>
+            <a href="{{ url_for('csrf_demo') }}" class="btn btn-info">Back to CSRF Demo</a>
+        </p>
+    </div>
+</div>
+{% endblock %} 
