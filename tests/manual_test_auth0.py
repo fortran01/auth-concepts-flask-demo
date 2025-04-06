@@ -55,8 +55,16 @@ if not auth0_domain or auth0_domain == 'your-tenant.auth0.com':
 else:
     print(f"✅ AUTH0_DOMAIN: {auth0_domain}")
 
-if not auth0_callback_url or 'localhost' not in auth0_callback_url:
-    print("❌ AUTH0_CALLBACK_URL is not set or doesn't contain 'localhost'")
+if not auth0_callback_url:
+    valid_url = False
+else:
+    has_localhost = 'localhost' in auth0_callback_url
+    has_local_ip = '127.0.0.1' in auth0_callback_url
+    valid_url = has_localhost or has_local_ip
+
+if not valid_url:
+    print("❌ AUTH0_CALLBACK_URL is not set or doesn't contain")
+    print("   'localhost' or '127.0.0.1'")
     print("   Please set a valid callback URL in your .env file")
 else:
     print(f"✅ AUTH0_CALLBACK_URL: {auth0_callback_url}")
