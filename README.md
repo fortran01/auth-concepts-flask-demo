@@ -23,6 +23,11 @@ This demo shows how to implement Basic and Digest Authentication in Flask.
 - Flash messages for user feedback
 - Built-in TOTP code generator for demo purposes
 - Comprehensive test suite with 96% coverage
+- CORS (Cross-Origin Resource Sharing) demonstration
+- Interactive examples of browser CORS behavior
+- Various CORS configuration techniques
+- Preflight request handling examples
+- Flask-CORS extension integration
 
 ## Setup
 
@@ -247,3 +252,93 @@ Digest Authentication provides better security by sending a hash of the credenti
 ### Form-based Authentication
 
 Form-based Authentication provides a user-friendly login interface that matches the application's design. It uses session management to maintain user state and provides feedback through flash messages. This method is ideal for web applications where user experience is a priority.
+
+## CORS Demo
+
+The project includes a demonstration of Cross-Origin Resource Sharing (CORS) mechanisms.
+
+### What is CORS?
+
+CORS (Cross-Origin Resource Sharing) is a security mechanism built into web browsers that restricts web pages from making requests to a different domain than the one that served the original web page. It's an extension of the Same-Origin Policy.
+
+### CORS Demo Setup
+
+This demo consists of two Flask applications:
+
+1. **API Server** (api_server.py) - Runs on port 5002
+   - Provides various API endpoints with different CORS configurations
+   - Demonstrates various ways to enable and configure CORS
+
+2. **Client Application** (client_app.py) - Runs on port 5003
+   - Simple web UI that makes requests to the API Server
+   - Demonstrates how browsers handle cross-origin requests
+
+### Running the CORS Demo
+
+1. Start the API Server (in one terminal):
+   ```bash
+   python api_server.py
+   ```
+
+2. Start the Client Application (in another terminal):
+   ```bash
+   python client_app.py
+   ```
+
+3. Open your browser and navigate to:
+   ```
+   http://localhost:5003
+   ```
+
+4. Use the buttons on the page to test different CORS scenarios
+
+Alternatively, you can use the provided convenience script to start both servers automatically:
+
+```bash
+# Make the script executable first (if needed)
+chmod +x run_cors_demo.sh
+
+# Run the script
+./run_cors_demo.sh
+```
+
+The script will launch both the API Server and Client Application in separate terminal windows, allowing you to quickly get started with the demo.
+
+### CORS Demo Scenarios
+
+The demo covers the following scenarios:
+
+1. **No CORS Headers**
+   - Request fails due to Same-Origin Policy
+   - Browser blocks the request with CORS error
+
+2. **CORS Enabled for All Origins**
+   - API adds `Access-Control-Allow-Origin: *` header
+   - Request succeeds for any origin
+
+3. **CORS Enabled for Specific Origin**
+   - API adds `Access-Control-Allow-Origin: http://localhost:5003` header
+   - Request succeeds only from that specific origin
+
+4. **Complex Request with Preflight**
+   - Demonstrates preflight OPTIONS request for non-simple requests
+   - API handles OPTIONS request with proper CORS headers
+
+5. **Using Flask-CORS Extension**
+   - Shows how to use the Flask-CORS extension for easier CORS configuration
+
+### CORS Learning Points
+
+- CORS is a browser security mechanism (the server always processes the request)
+- For cross-origin requests to succeed, the server must explicitly allow them
+- Different types of requests may require different CORS configurations
+- Non-simple requests trigger an automatic preflight (OPTIONS) request
+
+### Recommended Tools for CORS Inspection
+
+To fully understand what's happening:
+
+1. Open your browser's Developer Tools (F12)
+2. Go to the Network tab
+3. Watch the requests as you click the demo buttons
+4. Inspect the request headers, response headers, and error messages
