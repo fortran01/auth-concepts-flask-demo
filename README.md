@@ -8,6 +8,8 @@ This demo shows how to implement Basic and Digest Authentication in Flask.
 - Digest Authentication with nonce-based challenge-response
 - Form-based Authentication with session management
 - Token-based Authentication using JWT
+- Stateful (Redis-backed) session management
+- Stateless token-based authentication with client-side storage
 - Multi-Factor Authentication (MFA) using TOTP
 - Secure password storage using Werkzeug's password hashing
 - Decorator-based authentication for route protection
@@ -170,8 +172,11 @@ The demo provides these endpoints:
 - `/logout` - Logout endpoint for form-based authentication
 - `/setup-mfa` - Setup Multi-Factor Authentication
 - `/verify-mfa` - Verify MFA code
+- `/token-login` - Login page for JWT token-based authentication (stateless)
+- `/token-protected` - Protected page that uses client-side JWT token
 - `/api/token` - Get JWT token using Basic Authentication
 - `/api/protected` - Protected endpoint requiring JWT token
+- `/api/token-data` - Protected API endpoint for the stateless UI
 - `/debug/decode-session` - Debug tool for analyzing Flask session cookies
 - `/debug/redis-session` - Debug tool for viewing Redis session data
 
@@ -201,74 +206,33 @@ Note: In a production environment, you would:
 - Implement backup codes
 - Add MFA recovery options
 
-### Testing Token Authentication
+### Token-based Authentication
 
-You can test the token-based authentication using curl:
+Token-based Authentication uses JSON Web Tokens (JWT) for stateless authentication. Upon successful login, the server issues a signed JWT containing user information and claims. This token is then included in the Authorization header of subsequent requests using the Bearer scheme. Benefits include:
 
-1. Get a token using Basic Authentication:
-```bash
-curl -X POST http://localhost:5001/api/token -u admin:secret
-```
-Response:
-```json
-{
-    "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
-}
-```
+- Stateless authentication requiring no server-side session storage
+- Built-in expiration and claim verification
+- Cross-domain/CORS support
+- Suitable for both web applications and APIs
+- Efficient scaling in distributed systems
 
-2. Access protected endpoint using the token:
-```bash
-curl http://localhost:5001/api/protected \
-    -H "Authorization: Bearer YOUR_TOKEN_HERE"
-```
-Response:
-```json
-{
-    "message": "Hello admin! This endpoint is protected by JWT.",
-    "expires": "2024-03-21T15:30:00"
-}
-```
+This demo includes two token-based authentication implementations:
 
-3. Test with invalid token:
-```bash
-curl http://localhost:5001/api/protected \
-    -H "Authorization: Bearer invalid.token.here"
-```
-Response:
-```json
-{
-    "error": "Invalid or expired token"
-}
-```
+1. **API-based implementation** (`/api/token` and `/api/protected`):
+   - Get a token using Basic Authentication
+   - Use the token in the Authorization header for API requests
 
-### Testing Multi-Factor Authentication
+2. **UI-based implementation** (`/token-login` and `/token-protected`):
+   - Login via a web form to get a JWT token
+   - Token is stored in browser's localStorage
+   - Client-side JavaScript handles authentication
+   - Complete UI flow demonstration without server-side state
 
-The demo includes a built-in TOTP code generator for testing purposes. Here's how to test the MFA feature:
-
-1. Initial Setup:
-   ```
-   Username: admin
-   Password: secret
-   ```
-   - After logging in, you'll see a "Setup MFA" button on the protected page
-   - Click "Setup MFA" to start the MFA setup process
-   - You'll see your MFA secret key and a built-in TOTP generator
-   - Use the generated code to complete the setup
-
-2. Logging in with MFA:
-   - Once MFA is enabled, the login page will require a TOTP code
-   - The login page includes the same TOTP generator for convenience
-   - Enter your username, password, and the current TOTP code
-   - The code updates every 30 seconds
-
-3. Testing different scenarios:
-   - Try logging in without a TOTP code
-   - Try an invalid TOTP code
-   - Try accessing protected pages without MFA verification
-   - Use an expired TOTP code (wait 30 seconds)
-   - Log out and verify the TOTP generator appears on the login page
-
-Note: In a real application, you would use an authenticator app like Google Authenticator or Authy instead of the built-in generator. The demo includes the generator on both the setup and login pages to make testing easier without requiring external apps.
+Key features of the JWT implementation:
+- Tokens expire after 1 hour
+- Uses HS256 (HMAC with SHA-256) for signing
+- Includes username and expiration claims
+- Requires Bearer token scheme in Authorization header
 
 ## Authentication Methods
 
@@ -283,19 +247,3 @@ Digest Authentication provides better security by sending a hash of the credenti
 ### Form-based Authentication
 
 Form-based Authentication provides a user-friendly login interface that matches the application's design. It uses session management to maintain user state and provides feedback through flash messages. This method is ideal for web applications where user experience is a priority.
-
-### Token-based Authentication
-
-Token-based Authentication uses JSON Web Tokens (JWT) for stateless authentication. Upon successful login, the server issues a signed JWT containing user information and claims. This token is then included in the Authorization header of subsequent requests using the Bearer scheme. Benefits include:
-
-- Stateless authentication requiring no server-side session storage
-- Built-in expiration and claim verification
-- Cross-domain/CORS support
-- Suitable for both web applications and APIs
-- Efficient scaling in distributed systems
-
-Key features of the JWT implementation:
-- Tokens expire after 1 hour
-- Uses HS256 (HMAC with SHA-256) for signing
-- Includes username and expiration claims
-- Requires Bearer token scheme in Authorization header
