@@ -2,6 +2,7 @@ import unittest
 from unittest.mock import patch, MagicMock
 import os
 from app import app
+import fakeredis
 
 
 class Auth0TestCase(unittest.TestCase):
@@ -12,7 +13,10 @@ class Auth0TestCase(unittest.TestCase):
         app.config['TESTING'] = True
         app.config['WTF_CSRF_ENABLED'] = False
         app.config['SERVER_NAME'] = '127.0.0.1:5001'
-        app.config['SESSION_TYPE'] = 'filesystem'  # Use filesystem session for testing
+        
+        # Use fakeredis instead of real Redis
+        app.config['SESSION_TYPE'] = 'redis'
+        app.config['SESSION_REDIS'] = fakeredis.FakeStrictRedis()
         
         self.client = app.test_client()
         self.app_context = app.app_context()

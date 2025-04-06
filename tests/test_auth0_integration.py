@@ -5,6 +5,7 @@ import time
 import threading
 from flask import Flask, jsonify, request, redirect
 from werkzeug.serving import make_server
+import fakeredis
 
 from app import app as flask_app
 
@@ -99,7 +100,10 @@ class Auth0IntegrationTest(unittest.TestCase):
     def setUp(self):
         """Set up the test client."""
         flask_app.config['TESTING'] = True
-        flask_app.config['SESSION_TYPE'] = 'filesystem'
+        
+        # Use fakeredis for testing instead of real Redis
+        flask_app.config['SESSION_TYPE'] = 'redis'
+        flask_app.config['SESSION_REDIS'] = fakeredis.FakeStrictRedis()
         
         # Configure Auth0 to use our mock server
         self.original_domain = os.environ.get('AUTH0_DOMAIN')
