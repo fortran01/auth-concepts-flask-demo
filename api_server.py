@@ -64,7 +64,8 @@ def get_data_with_preflight():
         response = app.make_default_options_response()
         response.headers.add('Access-Control-Allow-Origin', '*')
         response.headers.add('Access-Control-Allow-Methods', 'GET, POST')
-        response.headers.add('Access-Control-Allow-Headers', 'Content-Type')
+        response.headers.add('Access-Control-Allow-Headers', 
+                             'Content-Type, X-Custom-Header')
         response.headers.add('Access-Control-Max-Age', '3600')
         return response
     
