@@ -8,6 +8,7 @@ This demo shows how to implement Basic and Digest Authentication in Flask.
 - Digest Authentication with nonce-based challenge-response
 - Form-based Authentication with session management
 - Token-based Authentication using JWT
+- LDAP Authentication with direct server binding
 - Stateful (Redis-backed) session management
 - Stateless token-based authentication with client-side storage
 - Multi-Factor Authentication (MFA) using TOTP
@@ -182,12 +183,18 @@ The demo provides these endpoints:
 - `/api/token` - Get JWT token using Basic Authentication
 - `/api/protected` - Protected endpoint requiring JWT token
 - `/api/token-data` - Protected API endpoint for the stateless UI
+- `/ldap-login` - Login page for LDAP authentication
+- `/ldap-protected` - Protected page requiring LDAP authentication
 - `/debug/decode-session` - Debug tool for analyzing Flask session cookies
 - `/debug/redis-session` - Debug tool for viewing Redis session data
 
 Default credentials:
 - Username: `admin`
 - Password: `secret`
+
+For LDAP authentication, use these test credentials:
+- Username: `john.doe` / Password: `password123`
+- Username: `jane.smith` / Password: `password456`
 
 ### Multi-Factor Authentication
 
@@ -252,6 +259,51 @@ Digest Authentication provides better security by sending a hash of the credenti
 ### Form-based Authentication
 
 Form-based Authentication provides a user-friendly login interface that matches the application's design. It uses session management to maintain user state and provides feedback through flash messages. This method is ideal for web applications where user experience is a priority.
+
+### LDAP Authentication
+
+LDAP (Lightweight Directory Access Protocol) Authentication uses an external directory service to verify user credentials. The demo implements direct LDAP authentication:
+
+1. The application connects directly to an OpenLDAP server
+2. User credentials are verified by attempting to bind (authenticate) to the LDAP server
+3. If successful, the user's attributes are retrieved and displayed
+4. Session management is used to maintain authentication state
+
+#### LDAP Authentication Flow
+
+```mermaid
+sequenceDiagram
+    participant User
+    participant Flask App
+    participant OpenLDAP
+
+    User->>Flask App: Submit login form
+    Flask App->>OpenLDAP: Bind request (DN, password)
+    alt Successful Authentication
+        OpenLDAP->>Flask App: Bind successful
+        Flask App->>OpenLDAP: Search for user attributes
+        OpenLDAP->>Flask App: Return user attributes
+        Flask App->>User: Login successful, show protected page
+    else Authentication Failure
+        OpenLDAP->>Flask App: Bind failed
+        Flask App->>User: Show error message
+    end
+```
+
+#### LDAP Implementation Details
+
+- Uses the `python-ldap` library to connect to the LDAP server
+- Authentication performed by binding to the LDAP server with user credentials
+- User attributes retrieved using LDAP search operations
+- Includes a dockerized OpenLDAP server for demonstration
+- Includes phpLDAPadmin for directory management (available at http://localhost:8080)
+- LDAP server runs on non-privileged port 10389
+
+To use the LDAP Management Interface:
+1. Visit http://localhost:8080 in your browser
+2. Login with:
+   - Login DN: `cn=admin,dc=example,dc=org`
+   - Password: `admin_password`
 
 ## CORS Demo
 
