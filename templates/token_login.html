@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+
+{% block title %}Token Login{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-6 offset-md-3">
+        <div class="card">
+            <div class="card-header">
+                <h2 class="text-center">JWT Token Login</h2>
+            </div>
+            <div class="card-body">
+                <div id="error-message" class="alert alert-danger" style="display: none;"></div>
+                <form id="login-form">
+                    <div class="mb-3">
+                        <label for="username" class="form-label">Username</label>
+                        <input type="text" class="form-control" id="username" name="username" required autofocus>
+                    </div>
+                    <div class="mb-3">
+                        <label for="password" class="form-label">Password</label>
+                        <input type="password" class="form-control" id="password" name="password" required>
+                    </div>
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-primary">Login</button>
+                    </div>
+                </form>
+            </div>
+            <div class="card-footer text-muted text-center">
+                <p>This demonstrates stateless JWT token-based authentication.</p>
+                <p>The token will be stored in your browser's localStorage.</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Check if we already have a token - if so, redirect to protected page
+    if (localStorage.getItem('auth_token')) {
+        window.location.href = '/token-protected';
+        return;
+    }
+
+    const loginForm = document.getElementById('login-form');
+    const errorMessage = document.getElementById('error-message');
+
+    loginForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const username = document.getElementById('username').value;
+        const password = document.getElementById('password').value;
+        
+        // Clear previous error messages
+        errorMessage.style.display = 'none';
+        
+        // Submit credentials to the token login endpoint
+        fetch('/token-login', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                username: username,
+                password: password
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.error) {
+                // Show error message
+                errorMessage.textContent = data.error;
+                errorMessage.style.display = 'block';
+            } else if (data.token) {
+                // Store token in localStorage
+                localStorage.setItem('auth_token', data.token);
+                // Redirect to protected page
+                window.location.href = '/token-protected';
+            }
+        })
+        .catch(error => {
+            errorMessage.textContent = 'An error occurred during login. Please try again.';
+            errorMessage.style.display = 'block';
+            console.error('Error:', error);
+        });
+    });
+});
+</script>
+{% endblock %} 

@@ -10,13 +10,29 @@
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
         <div class="container">
             <a class="navbar-brand" href="/">Auth Demo</a>
-            <div class="collapse navbar-collapse">
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarContent">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarContent">
                 <ul class="navbar-nav me-auto">
                     <li class="nav-item">
                         <a class="nav-link" href="/">Home</a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" href="/form">Protected Page</a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="authDropdown" role="button" data-bs-toggle="dropdown">
+                            Auth Options
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li><h6 class="dropdown-header">Stateful (Session)</h6></li>
+                            <li><a class="dropdown-item" href="/login">Session Login</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><h6 class="dropdown-header">Stateless (JWT)</h6></li>
+                            <li><a class="dropdown-item" href="/token-login">Token Login</a></li>
+                            <li><a class="dropdown-item" href="/token-protected">Token Protected</a></li>
+                        </ul>
                     </li>
                 </ul>
                 <div class="navbar-text me-3">

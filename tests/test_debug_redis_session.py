@@ -21,6 +21,9 @@ def test_debug_redis_session_endpoint_accessible(client):
 def test_debug_redis_session_not_accessible_in_production():
     """Test that Redis session debug page is not accessible in production mode."""
     # Create a new app instance with debug disabled
+    import app as app_module
+    original_debug_mode = app_module.DEBUG_MODE
+    app_module.DEBUG_MODE = False
     app.config['DEBUG'] = False
     
     with app.test_client() as client:
@@ -31,9 +34,10 @@ def test_debug_redis_session_not_accessible_in_production():
         # Check with follow_redirects that we end up at the index page
         response = client.get('/debug/redis-session', follow_redirects=True)
         assert response.status_code == 200
-        assert b'Welcome to the Authentication Demo!' in response.data
+        assert b'Authentication Concepts Demo' in response.data
     
     # Restore debug mode
+    app_module.DEBUG_MODE = original_debug_mode
     app.config['DEBUG'] = True
 
 

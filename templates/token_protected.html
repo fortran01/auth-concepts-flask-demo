@@ -1,0 +1,131 @@
+{% extends "base.html" %}
+
+{% block title %}Token Protected Page{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8 offset-md-2">
+        <div class="card">
+            <div class="card-header">
+                <h2 class="text-center">JWT Token Protected Page</h2>
+            </div>
+            <div class="card-body">
+                <div id="loading" class="text-center">
+                    <p>Loading protected data...</p>
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                </div>
+                
+                <div id="error-container" class="alert alert-danger" style="display: none;"></div>
+                
+                <div id="data-container" style="display: none;">
+                    <h3 class="mb-3">Protected Data</h3>
+                    <div id="protected-data" class="alert alert-success"></div>
+                    
+                    <h3 class="mb-3">Your Token Info</h3>
+                    <div class="card mb-3">
+                        <div class="card-body">
+                            <h4>JWT Token Payload</h4>
+                            <pre id="token-payload" class="bg-light p-3"></pre>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="d-grid gap-2 mt-4">
+                    <button id="refresh-btn" class="btn btn-primary">Refresh Data</button>
+                    <button id="logout-btn" class="btn btn-danger">Logout</button>
+                </div>
+            </div>
+            <div class="card-footer text-muted text-center">
+                <p>This page is protected by JWT token authentication.</p>
+                <p>Your token is stored in browser localStorage and sent with each API request.</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const token = localStorage.getItem('auth_token');
+    const loadingElement = document.getElementById('loading');
+    const errorContainer = document.getElementById('error-container');
+    const dataContainer = document.getElementById('data-container');
+    const protectedData = document.getElementById('protected-data');
+    const tokenPayload = document.getElementById('token-payload');
+    const refreshBtn = document.getElementById('refresh-btn');
+    const logoutBtn = document.getElementById('logout-btn');
+    
+    // Redirect to login if no token is found
+    if (!token) {
+        window.location.href = '/token-login';
+        return;
+    }
+    
+    // Function to fetch protected data
+    function fetchProtectedData() {
+        // Reset UI state
+        loadingElement.style.display = 'block';
+        errorContainer.style.display = 'none';
+        dataContainer.style.display = 'none';
+        
+        // Fetch data from API
+        fetch('/api/token-data', {
+            method: 'GET',
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! Status: ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            // Display the protected data
+            protectedData.textContent = data.message;
+            
+            // Parse and display token payload
+            const payloadBase64 = token.split('.')[1];
+            const payload = JSON.parse(atob(payloadBase64));
+            tokenPayload.textContent = JSON.stringify(payload, null, 2);
+            
+            // Show data container, hide loading
+            loadingElement.style.display = 'none';
+            dataContainer.style.display = 'block';
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            loadingElement.style.display = 'none';
+            
+            // Handle token expiration
+            if (error.message.includes('401')) {
+                errorContainer.textContent = 'Your session has expired. Please login again.';
+                // Clear the token and redirect to login after a short delay
+                setTimeout(() => {
+                    localStorage.removeItem('auth_token');
+                    window.location.href = '/token-login';
+                }, 2000);
+            } else {
+                errorContainer.textContent = 'Failed to load protected data: ' + error.message;
+            }
+            
+            errorContainer.style.display = 'block';
+        });
+    }
+    
+    // Fetch data on page load
+    fetchProtectedData();
+    
+    // Set up refresh button
+    refreshBtn.addEventListener('click', fetchProtectedData);
+    
+    // Set up logout button
+    logoutBtn.addEventListener('click', function() {
+        localStorage.removeItem('auth_token');
+        window.location.href = '/token-login';
+    });
+});
+</script>
+{% endblock %} 

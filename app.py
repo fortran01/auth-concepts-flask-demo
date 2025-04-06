@@ -1,4 +1,7 @@
-from flask import Flask, request, Response, render_template, redirect, url_for, session, flash, jsonify
+from flask import (
+    Flask, request, Response, render_template, redirect,
+    url_for, session, flash, jsonify, g
+)
 from functools import wraps
 import hashlib
 import secrets
@@ -209,9 +212,30 @@ def mfa_required(f):
         return f(*args, **kwargs)
     return decorated
 
+def token_ui_required(f):
+    """Decorator for token-based UI authentication"""
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        auth_header = request.headers.get('Authorization')
+        if not auth_header or not auth_header.startswith('Bearer '):
+            return jsonify({'error': 'Missing or invalid token'}), 401
+        
+        token = auth_header.split(' ')[1]
+        payload = verify_token(token)
+        
+        if not payload:
+            return jsonify({'error': 'Invalid or expired token'}), 401
+        
+        # Store the payload in Flask's g object for the route to use
+        g.user = payload
+        
+        return f(*args, **kwargs)
+    return decorated
+
 @app.route('/')
 def index():
-    return 'Welcome to the Authentication Demo! Try /basic or /digest.'
+    """Home page with links to different authentication demos"""
+    return render_template('index.html')
 
 @app.route('/basic')
 @basic_auth_required
@@ -369,6 +393,46 @@ def token_protected():
         'expires': datetime.fromtimestamp(payload["exp"]).isoformat()
     })
 
+@app.route('/token-login', methods=['GET', 'POST'])
+def token_login():
+    """
+    GET: Render the token login page
+    POST: Process token login (username/password) and return a JWT token
+    """
+    if request.method == 'GET':
+        return render_template('token_login.html')
+    
+    # Handle POST request - this is an API endpoint that returns JSON
+    data = request.get_json()
+    if not data or not data.get('username') or not data.get('password'):
+        return jsonify({'error': 'Missing username or password'}), 400
+    
+    username = data.get('username')
+    password = data.get('password')
+    
+    if check_basic_auth(username, password):
+        # Generate JWT token (no MFA check for this demo)
+        token = generate_token(username)
+        return jsonify({'token': token})
+    
+    return jsonify({'error': 'Invalid credentials'}), 401
+
+@app.route('/token-protected')
+def token_protected_ui():
+    """Render the protected page that will use client-side JS to fetch protected data"""
+    return render_template('token_protected.html')
+
+@app.route('/api/token-data')
+@token_ui_required
+def token_data():
+    """API endpoint that returns protected data when given a valid JWT token"""
+    # g.user is set by the token_ui_required decorator
+    return jsonify({
+        'message': f'Hello {g.user["username"]}! This is protected data '
+                   f'accessible only with a valid token.',
+        'timestamp': datetime.now().isoformat()
+    })
+
 # --- !! DANGER !! Debug endpoint for demonstration only - REMOVE BEFORE DEPLOYMENT ---
 @app.route('/debug/decode-session', methods=['GET', 'POST'])
 def debug_decode_session():
@@ -471,7 +535,7 @@ def debug_decode_session():
 @app.route('/debug/redis-session')
 def debug_redis_session():
     """Debug endpoint to decode Redis session data."""
-    if not app.debug:
+    if not DEBUG_MODE:
         # Only available in debug mode
         return redirect(url_for('index'))
     
@@ -526,7 +590,7 @@ def debug_redis_session():
             if raw_data:
                 import pickle
                 matched_session = pickle.loads(raw_data)
-        except Exception as e:
+        except Exception:
             pass
     
     # Return as JSON

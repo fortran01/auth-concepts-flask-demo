@@ -23,7 +23,7 @@ def test_index_no_auth(client):
     """Test that index page is accessible without auth."""
     response = client.get('/')
     assert response.status_code == 200
-    assert b'Welcome to the Authentication Demo!' in response.data
+    assert b'Authentication Concepts Demo' in response.data
 
 
 def test_basic_auth_no_credentials(client):

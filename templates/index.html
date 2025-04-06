@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+
+{% block title %}Flask Auth Demo - Home{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-10 offset-md-1">
+        <div class="card">
+            <div class="card-header">
+                <h2 class="text-center">Authentication Concepts Demo</h2>
+            </div>
+            <div class="card-body">
+                <p class="lead text-center">
+                    This application demonstrates different authentication concepts in a Flask app.
+                </p>
+                
+                <div class="row mt-4">
+                    <div class="col-md-6">
+                        <div class="card mb-4 h-100">
+                            <div class="card-header bg-primary text-white">
+                                <h3 class="mb-0">Stateful Authentication</h3>
+                            </div>
+                            <div class="card-body">
+                                <p>Demonstration of server-side sessions stored in Redis.</p>
+                                <ul>
+                                    <li>Session data stored on server</li>
+                                    <li>Only session ID stored in client cookie</li>
+                                    <li>Includes Multi-Factor Authentication</li>
+                                    <li>Server maintains state</li>
+                                </ul>
+                                <div class="d-grid gap-2">
+                                    <a href="{{ url_for('login') }}" class="btn btn-primary">Try Session Login</a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <div class="card mb-4 h-100">
+                            <div class="card-header bg-success text-white">
+                                <h3 class="mb-0">Stateless Authentication</h3>
+                            </div>
+                            <div class="card-body">
+                                <p>Demonstration of JWT token-based authentication.</p>
+                                <ul>
+                                    <li>All session data stored in token</li>
+                                    <li>Token stored in browser's localStorage</li>
+                                    <li>No MFA (simplified for demo)</li>
+                                    <li>Server is stateless</li>
+                                </ul>
+                                <div class="d-grid gap-2">
+                                    <a href="{{ url_for('token_login') }}" class="btn btn-success">Try Token Login</a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mt-4">
+                    <h4>HTTP Authentication Methods</h4>
+                    <p>Additionally, this demo includes examples of HTTP authentication methods:</p>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="card mb-3">
+                                <div class="card-body">
+                                    <h5 class="card-title">Basic Authentication</h5>
+                                    <p class="card-text">Simple username/password authentication using HTTP headers.</p>
+                                    <a href="/basic" class="btn btn-outline-primary btn-sm">Try Basic Auth</a>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card mb-3">
+                                <div class="card-body">
+                                    <h5 class="card-title">Digest Authentication</h5>
+                                    <p class="card-text">More secure authentication that doesn't send passwords in clear text.</p>
+                                    <a href="/digest" class="btn btn-outline-primary btn-sm">Try Digest Auth</a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="card-footer text-muted">
+                <p class="mb-0 text-center">This is an educational demo. <strong>Do not use in production</strong> without proper security review.</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 
