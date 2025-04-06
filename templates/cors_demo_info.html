@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+
+{% block title %}CORS Demo Information{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+    <h1>Cross-Origin Resource Sharing (CORS) Demo</h1>
+    
+    <div class="alert alert-info">
+        <strong>Note:</strong> This demo runs as two separate applications to demonstrate cross-origin behavior.
+    </div>
+    
+    <div class="card shadow mb-4">
+        <div class="card-header">
+            <h2 class="h5 mb-0">Demo Setup</h2>
+        </div>
+        <div class="card-body">
+            <p>To experience the CORS demo, you need to run two separate Flask applications:</p>
+            
+            <ol>
+                <li>
+                    <strong>API Server</strong> (api_server.py) - Runs on port 5002
+                    <ul>
+                        <li>Provides various API endpoints with different CORS configurations</li>
+                        <li>Demonstrates various ways to enable and configure CORS</li>
+                    </ul>
+                </li>
+                <li>
+                    <strong>Client Application</strong> (client_app.py) - Runs on port 5003
+                    <ul>
+                        <li>Simple web UI that makes requests to the API Server</li>
+                        <li>Demonstrates how browsers handle cross-origin requests</li>
+                    </ul>
+                </li>
+            </ol>
+        </div>
+    </div>
+    
+    <div class="card shadow mb-4">
+        <div class="card-header">
+            <h2 class="h5 mb-0">Running the Demo</h2>
+        </div>
+        <div class="card-body">
+            <p>Follow these steps to run the CORS demo:</p>
+            
+            <div class="alert alert-warning">
+                <strong>Important:</strong> These commands should be run in separate terminal windows.
+            </div>
+            
+            <h5>1. Start the API Server:</h5>
+            <div class="bg-light p-3 rounded mb-3">
+                <code>python api_server.py</code>
+            </div>
+            
+            <h5>2. Start the Client Application:</h5>
+            <div class="bg-light p-3 rounded mb-3">
+                <code>python client_app.py</code>
+            </div>
+            
+            <h5>3. Access the Demo:</h5>
+            <div class="bg-light p-3 rounded mb-3">
+                <a href="http://localhost:5003" target="_blank" class="btn btn-primary">
+                    Open CORS Demo (http://localhost:5003)
+                </a>
+            </div>
+        </div>
+    </div>
+    
+    <div class="card shadow mb-4">
+        <div class="card-header">
+            <h2 class="h5 mb-0">What You'll Learn</h2>
+        </div>
+        <div class="card-body">
+            <p>This demo demonstrates:</p>
+            
+            <ul>
+                <li>How the Same-Origin Policy restricts cross-origin requests</li>
+                <li>How CORS headers enable controlled cross-origin access</li>
+                <li>Various CORS configurations (open access, specific origins, etc.)</li>
+                <li>How preflight requests work for complex cross-origin requests</li>
+                <li>Using Flask-CORS for easy CORS implementation</li>
+            </ul>
+            
+            <p>Be sure to open your browser's Developer Tools (F12) and navigate to the Network tab to fully understand what's happening as you test the demo.</p>
+        </div>
+    </div>
+    
+    <div class="card shadow">
+        <div class="card-header">
+            <h2 class="h5 mb-0">Files in this Demo</h2>
+        </div>
+        <div class="card-body">
+            <ul>
+                <li><strong>api_server.py</strong> - The API server with various CORS configurations</li>
+                <li><strong>client_app.py</strong> - The client application that makes cross-origin requests</li>
+                <li><strong>templates/cors_demo.html</strong> - The client UI that demonstrates CORS behavior</li>
+                <li><strong>README_CORS_DEMO.md</strong> - Detailed documentation about the demo</li>
+            </ul>
+            
+            <p>Check out the <a href="https://github.com/your-username/auth-concepts-flask-demo" target="_blank">GitHub repository</a> for the full source code.</p>
+        </div>
+    </div>
+</div>
+{% endblock %} 

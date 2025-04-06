@@ -670,8 +670,13 @@ def csrf_demo():
 
 @app.route('/malicious-site')
 def malicious_site():
-    """Simulated malicious site that attempts to exploit CSRF vulnerability"""
+    """Demo page showing a malicious site for CSRF attacks"""
     return render_template('malicious.html')
+
+@app.route('/cors-demo-info')
+def cors_demo_info():
+    """Information page about the CORS demo setup"""
+    return render_template('cors_demo_info.html')
 
 # Make CSRF token available to all templates
 @app.context_processor
