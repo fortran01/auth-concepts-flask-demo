@@ -8,7 +8,51 @@ services:
     volumes:
       - redis_data:/data
     restart: unless-stopped
+  
+  openldap:
+    image: osixia/openldap:1.5.0
+    container_name: flask_auth_ldap
+    ports:
+      - "10389:389"
+      - "10636:636"
+    environment:
+      LDAP_ORGANISATION: "Auth Demo"
+      LDAP_DOMAIN: "example.org"
+      LDAP_ADMIN_PASSWORD: "admin_password"
+      LDAP_CONFIG_PASSWORD: "config_password"
+      LDAP_READONLY_USER: "true"
+      LDAP_READONLY_USER_USERNAME: "readonly"
+      LDAP_READONLY_USER_PASSWORD: "readonly_password"
+    volumes:
+      - ldap_data:/var/lib/ldap
+      - ldap_config:/etc/ldap/slapd.d
+    restart: unless-stopped
+  
+  ldap_init:
+    image: osixia/openldap:1.5.0
+    volumes:
+      - ./ldap_init.ldif:/ldap_init.ldif
+      - ./init_ldap.sh:/init_ldap.sh
+    command: /bin/bash /init_ldap.sh
+    depends_on:
+      - openldap
+  
+  phpldapadmin:
+    image: osixia/phpldapadmin:0.9.0
+    container_name: flask_auth_ldapadmin
+    ports:
+      - "8080:80"
+    environment:
+      PHPLDAPADMIN_LDAP_HOSTS: "openldap"
+      PHPLDAPADMIN_HTTPS: "false"
+    depends_on:
+      - openldap
+    restart: unless-stopped
 
 volumes:
   redis_data:
+    driver: local
+  ldap_data:
+    driver: local
+  ldap_config:
     driver: local 

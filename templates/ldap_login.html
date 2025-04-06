@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+
+{% block title %}LDAP Login{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-6 offset-md-3">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h3 class="mb-0">LDAP Authentication</h3>
+            </div>
+            <div class="card-body">
+                <p class="lead">
+                    This demo demonstrates direct authentication against an LDAP directory.
+                </p>
+                
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                        {% for category, message in messages %}
+                            <div class="alert alert-{{ category if category != 'message' else 'info' }}">
+                                {{ message }}
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+                {% endwith %}
+                
+                <form method="POST" action="{{ url_for('ldap_login') }}">
+                    <div class="mb-3">
+                        <label for="username" class="form-label">Username</label>
+                        <input type="text" class="form-control" id="username" name="username" required>
+                        <div class="form-text">Example user: john.doe</div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="password" class="form-label">Password</label>
+                        <input type="password" class="form-control" id="password" name="password" required>
+                        <div class="form-text">Example password: password123</div>
+                    </div>
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-primary">Login with LDAP</button>
+                        <a href="{{ url_for('index') }}" class="btn btn-outline-secondary">Back to Home</a>
+                    </div>
+                </form>
+            </div>
+            <div class="card-footer">
+                <div class="small text-muted">
+                    <p class="mb-0">This authenticates directly against an OpenLDAP server in Docker.</p>
+                    <p class="mb-0">LDAP Domain: example.org</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

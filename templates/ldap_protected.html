@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+
+{% block title %}LDAP Protected Page{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8 offset-md-2">
+        <div class="card">
+            <div class="card-header bg-success text-white">
+                <h3 class="mb-0">LDAP Authentication Successful</h3>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-success mb-4">
+                    <h4 class="alert-heading">Welcome, {{ user_info.cn[0] }}!</h4>
+                    <p>You have successfully authenticated using LDAP.</p>
+                </div>
+                
+                <h4>Your LDAP User Information:</h4>
+                <table class="table table-bordered">
+                    <tbody>
+                        <tr>
+                            <th>Username (UID)</th>
+                            <td>{{ user_info.uid[0] }}</td>
+                        </tr>
+                        <tr>
+                            <th>Full Name</th>
+                            <td>{{ user_info.cn[0] }}</td>
+                        </tr>
+                        <tr>
+                            <th>Email</th>
+                            <td>{{ user_info.mail[0] if user_info.mail else 'Not available' }}</td>
+                        </tr>
+                        <tr>
+                            <th>Distinguished Name</th>
+                            <td>{{ dn }}</td>
+                        </tr>
+                    </tbody>
+                </table>
+                
+                <div class="d-grid gap-2 mt-4">
+                    <a href="{{ url_for('ldap_logout') }}" class="btn btn-danger">Logout</a>
+                    <a href="{{ url_for('index') }}" class="btn btn-outline-secondary">Back to Home</a>
+                </div>
+            </div>
+            <div class="card-footer">
+                <div class="small text-muted">
+                    <p class="mb-0">Direct LDAP authentication demo - Section 4.4.1</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

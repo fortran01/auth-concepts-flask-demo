@@ -15,7 +15,7 @@
                 </p>
                 
                 <div class="row mt-4">
-                    <div class="col-md-6">
+                    <div class="col-md-4">
                         <div class="card mb-4 h-100">
                             <div class="card-header bg-primary text-white">
                                 <h3 class="mb-0">Stateful Authentication</h3>
@@ -35,7 +35,7 @@
                         </div>
                     </div>
                     
-                    <div class="col-md-6">
+                    <div class="col-md-4">
                         <div class="card mb-4 h-100">
                             <div class="card-header bg-success text-white">
                                 <h3 class="mb-0">Stateless Authentication</h3>
@@ -50,6 +50,26 @@
                                 </ul>
                                 <div class="d-grid gap-2">
                                     <a href="{{ url_for('token_login') }}" class="btn btn-success">Try Token Login</a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-4">
+                        <div class="card mb-4 h-100">
+                            <div class="card-header bg-info text-white">
+                                <h3 class="mb-0">LDAP Authentication</h3>
+                            </div>
+                            <div class="card-body">
+                                <p>Direct authentication against an LDAP directory.</p>
+                                <ul>
+                                    <li>Authenticates directly against OpenLDAP</li>
+                                    <li>No MFA (direct LDAP only)</li>
+                                    <li>Employee directory integration</li>
+                                    <li>Shows DN binding and user attributes</li>
+                                </ul>
+                                <div class="d-grid gap-2">
+                                    <a href="{{ url_for('ldap_login') }}" class="btn btn-info">Try LDAP Login</a>
                                 </div>
                             </div>
                         </div>

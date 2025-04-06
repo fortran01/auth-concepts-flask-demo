@@ -6,7 +6,7 @@ from functools import wraps
 import hashlib
 import secrets
 import os
-from typing import Set, Dict, Optional, Tuple
+from typing import Set, Dict, Optional, Tuple, Any, List
 from werkzeug.security import generate_password_hash, check_password_hash
 import jwt
 from datetime import datetime, timedelta, timezone
@@ -14,6 +14,7 @@ import pyotp
 import logging
 from flask_session import Session
 import redis
+import ldap
 
 # Configure logging
 logging.basicConfig(level=logging.DEBUG)
@@ -33,6 +34,12 @@ SESSION_USE_SIGNER = True  # Uses the Flask secret key to sign the session ID
 SESSION_KEY_PREFIX = 'session:'
 # Ensure Redis is running before the app starts
 SESSION_REDIS = redis.from_url(os.environ.get('REDIS_URL', 'redis://localhost:6379/0'))
+
+# LDAP configuration
+LDAP_SERVER = os.environ.get('LDAP_SERVER', 'ldap://localhost:10389')
+LDAP_BASE_DN = os.environ.get('LDAP_BASE_DN', 'dc=example,dc=org')
+LDAP_USER_DN_TEMPLATE = os.environ.get('LDAP_USER_DN_TEMPLATE', 'uid={username},ou=users,' + LDAP_BASE_DN)
+LDAP_USER_FILTER = os.environ.get('LDAP_USER_FILTER', '(uid={username})')
 
 app = Flask(__name__)
 app.debug = DEBUG_MODE  # Explicitly set debug mode
@@ -682,6 +689,155 @@ def cors_demo_info():
 @app.context_processor
 def inject_csrf_token():
     return dict(csrf_token=generate_csrf_token)
+
+# LDAP Authentication functions
+def ldap_authenticate(username: str, password: str) -> Tuple[bool, Optional[Dict[str, List[Any]]], Optional[str]]:
+    """
+    Authenticate a user against the LDAP server.
+    
+    Returns a tuple containing:
+    - Success: Boolean indicating if authentication was successful
+    - User Info: Dictionary of user attributes from LDAP (if successful)
+    - DN: Distinguished Name of the user (if successful)
+    - Error Message: String with error message (if failed)
+    """
+    try:
+        # Initialize LDAP connection
+        logger.debug(f"Connecting to LDAP server at {LDAP_SERVER}")
+        ldap_conn = ldap.initialize(LDAP_SERVER)
+        
+        # Set LDAP protocol version
+        ldap_conn.protocol_version = ldap.VERSION3
+        
+        # We don't need referrals for this demo
+        ldap_conn.set_option(ldap.OPT_REFERRALS, 0)
+        
+        # Try directly binding as the admin user first to ensure connectivity
+        admin_dn = f"cn=admin,{LDAP_BASE_DN}"
+        logger.debug(f"Testing connection with admin bind: {admin_dn}")
+        ldap_conn.simple_bind_s(admin_dn, "admin_password")
+        
+        # Create a clean filter with the username
+        search_filter = f"(uid={username})"
+        logger.debug(f"Searching for user with filter: {search_filter} in base DN: {LDAP_BASE_DN}")
+        
+        results = ldap_conn.search_s(
+            LDAP_BASE_DN,
+            ldap.SCOPE_SUBTREE,
+            search_filter,
+            ['uid', 'cn', 'mail', 'sn', 'givenName']
+        )
+        
+        logger.debug(f"Search results: {results}")
+        
+        if not results:
+            logger.warning(f"User not found: {username}")
+            return False, None, f"User not found: {username}"
+        
+        # Get the user's DN from the search results
+        user_dn, user_attrs = results[0]
+        logger.debug(f"Found user DN: {user_dn}")
+        
+        # Now try to bind with the user's DN and password
+        logger.debug(f"Attempting to bind with DN: {user_dn}")
+        ldap_conn.simple_bind_s(user_dn, password)
+        
+        # Convert binary values to strings for easier handling in templates
+        for key, values in user_attrs.items():
+            user_attrs[key] = [
+                v.decode('utf-8') if isinstance(v, bytes) else v
+                for v in values
+            ]
+        
+        # Close the connection
+        ldap_conn.unbind_s()
+        
+        return True, user_attrs, user_dn
+    
+    except ldap.INVALID_CREDENTIALS:
+        logger.warning(f"Invalid LDAP credentials for user: {username}")
+        return False, None, "Invalid username or password."
+    
+    except ldap.NO_SUCH_OBJECT:
+        logger.error(f"LDAP object not found for user: {username}")
+        return False, None, "User not found in LDAP directory."
+    
+    except ldap.LDAPError as e:
+        logger.error(f"LDAP error: {e}")
+        return False, None, f"LDAP error: {str(e)}"
+    
+    except Exception as e:
+        logger.error(f"Unexpected error during LDAP authentication: {e}", exc_info=True)
+        return False, None, f"Unexpected error: {str(e)}"
+
+
+def ldap_login_required(f):
+    """Decorator for routes that require LDAP authentication"""
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        if 'ldap_authenticated' not in session or not session['ldap_authenticated']:
+            flash('Please log in with LDAP to access this page', 'warning')
+            return redirect(url_for('ldap_login'))
+        return f(*args, **kwargs)
+    return decorated
+
+
+# LDAP routes
+@app.route('/ldap-login', methods=['GET', 'POST'])
+def ldap_login():
+    """LDAP login route"""
+    if request.method == 'POST':
+        username = request.form.get('username')
+        password = request.form.get('password')
+        
+        if not username or not password:
+            flash('Please provide both username and password', 'danger')
+            return redirect(url_for('ldap_login'))
+        
+        # Trim whitespace from username to prevent search filter issues
+        username = username.strip()
+        
+        success, user_info, error_or_dn = ldap_authenticate(username, password)
+        
+        if success:
+            # Store LDAP authentication information in session
+            session['ldap_authenticated'] = True
+            session['ldap_username'] = username
+            session['ldap_user_info'] = user_info
+            session['ldap_dn'] = error_or_dn  # This should contain the DN on success
+            
+            flash(f'Successfully logged in as {username}', 'success')
+            return redirect(url_for('ldap_protected'))
+        else:
+            flash(f'Authentication failed: {error_or_dn}', 'danger')
+            return redirect(url_for('ldap_login'))
+    
+    return render_template('ldap_login.html')
+
+
+@app.route('/ldap-protected')
+@ldap_login_required
+def ldap_protected():
+    """Protected page that requires LDAP authentication"""
+    user_info = session.get('ldap_user_info')
+    dn = session.get('ldap_dn')
+    
+    return render_template('ldap_protected.html', 
+                         user_info=user_info,
+                         dn=dn)
+
+
+@app.route('/ldap-logout')
+def ldap_logout():
+    """LDAP logout route"""
+    session.pop('ldap_authenticated', None)
+    session.pop('ldap_username', None)
+    session.pop('ldap_user_info', None)
+    session.pop('ldap_dn', None)
+    
+    flash('Successfully logged out of LDAP session', 'success')
+    return redirect(url_for('index'))
+
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5001) 
