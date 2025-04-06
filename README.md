@@ -9,6 +9,7 @@ This demo shows how to implement Basic and Digest Authentication in Flask.
 - Form-based Authentication with session management
 - Token-based Authentication using JWT
 - LDAP Authentication with direct server binding
+- Auth0 Universal Login integration with OAuth 2.0/OIDC
 - Stateful (Redis-backed) session management
 - Stateless token-based authentication with client-side storage
 - Multi-Factor Authentication (MFA) using TOTP
@@ -185,6 +186,10 @@ The demo provides these endpoints:
 - `/api/token-data` - Protected API endpoint for the stateless UI
 - `/ldap-login` - Login page for LDAP authentication
 - `/ldap-protected` - Protected page requiring LDAP authentication
+- `/auth0/login` - Initiates Auth0 Universal Login flow
+- `/auth0/callback` - Callback URL for Auth0 authentication
+- `/auth0/profile` - Protected page requiring Auth0 authentication
+- `/auth0/logout` - Logout endpoint for Auth0 authentication
 - `/debug/decode-session` - Debug tool for analyzing Flask session cookies
 - `/debug/redis-session` - Debug tool for viewing Redis session data
 
@@ -304,6 +309,49 @@ To use the LDAP Management Interface:
 2. Login with:
    - Login DN: `cn=admin,dc=example,dc=org`
    - Password: `admin_password`
+
+### Auth0 Universal Login
+
+Auth0 Universal Login provides a complete authentication solution that can be quickly integrated into any application. This demo implements the Auth0 integration using the Authorization Code Flow with PKCE, which is recommended for web applications.
+
+#### Auth0 Authentication Flow
+
+1. User clicks "Login with Auth0" and is redirected to Auth0's login page
+2. Auth0 handles user authentication (including social logins if configured)
+3. After successful authentication, Auth0 redirects back to the application with an authorization code
+4. The application exchanges this code for tokens (ID token, access token)
+5. The application uses the access token to fetch user profile information
+6. User information is stored in the session for subsequent requests
+
+#### Auth0 Setup
+
+To use Auth0 with this demo:
+
+1. Create a free Auth0 account at [auth0.com](https://auth0.com)
+2. Create a Regular Web Application in the Auth0 Dashboard
+3. Configure the application with these settings:
+   - Allowed Callback URLs: `http://127.0.0.1:5001/auth0/callback`
+   - Allowed Logout URLs: `http://127.0.0.1:5001`
+   - Allowed Web Origins: `http://127.0.0.1:5001`
+4. Update the `.env` file with your Auth0 credentials:
+   ```
+   AUTH0_CLIENT_ID=your_client_id
+   AUTH0_CLIENT_SECRET=your_client_secret
+   AUTH0_DOMAIN=your-tenant.auth0.com
+   AUTH0_CALLBACK_URL=http://127.0.0.1:5001/auth0/callback
+   ```
+
+#### Benefits of Auth0 Integration
+
+- Fully customizable login and registration pages
+- Support for social logins (Google, Facebook, GitHub, etc.)
+- Enterprise connections (LDAP, Active Directory, SAML)
+- Advanced security features like Brute Force Protection
+- Multi-factor Authentication (MFA)
+- Centralized user management dashboard
+- Detailed authentication logs and analytics
+
+For more information, refer to the [Auth0 Setup Guide](auth0_setup_guide.md).
 
 ## CORS Demo
 
