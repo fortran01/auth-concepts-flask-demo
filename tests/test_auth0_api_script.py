@@ -77,8 +77,8 @@ AUTH0_M2M_CLIENT_SECRET=test-m2m-client-secret
         # Verify the help text contains expected content
         self.assertEqual(result.returncode, 0)
         self.assertIn("=== Auth0 M2M API Test ===", result.stdout)
-        self.assertIn("Step 1: Getting access token", result.stdout)
-        self.assertIn("curl --request GET", result.stdout)
+        self.assertIn("Options:", result.stdout)
+        self.assertIn("--env-file FILE", result.stdout)
     
     @patch('subprocess.run')
     def test_token_extraction(self, mock_run):

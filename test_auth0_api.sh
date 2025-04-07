@@ -7,18 +7,63 @@ RED='\033[0;31m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
+# Default values
+ENV_FILE=".env"
+TEST_MODE=false
+SHOW_TOKEN=false
+API_PATH=""
+
+# Parse command line arguments
+for arg in "$@"
+do
+    case $arg in
+        --help)
+        echo -e "${BLUE}=== Auth0 M2M API Test ===${NC}"
+        echo -e "Usage: $0 [options]"
+        echo -e "Options:"
+        echo -e "  --help                 Show this help message"
+        echo -e "  --env-file FILE        Use specified environment file instead of .env"
+        echo -e "  -t, --test             Run in test mode"
+        echo -e "  --show-token           Display extracted access token"
+        echo -e "  -a, --api PATH         Call specific API path"
+        echo -e "\nExample:"
+        echo -e "Step 1: Getting access token from Auth0..."
+        echo -e "curl --request GET --url \"http://localhost:5001/api/auth0-protected\" --header \"authorization: Bearer TOKEN\""
+        exit 0
+        ;;
+        --env-file=*)
+        ENV_FILE="${arg#*=}"
+        ;;
+        --env-file)
+        ENV_FILE="$2"
+        shift
+        ;;
+        -t|--test)
+        TEST_MODE=true
+        ;;
+        --show-token)
+        SHOW_TOKEN=true
+        ;;
+        -a|--api)
+        API_PATH="$2"
+        shift
+        ;;
+    esac
+    shift
+done
+
 # Check if .env file exists
-if [ ! -f .env ]; then
-  echo -e "${RED}Error: .env file not found. Please create it with your Auth0 credentials.${NC}"
+if [ ! -f "$ENV_FILE" ]; then
+  echo -e "${RED}Error: $ENV_FILE file not found. Please create it with your Auth0 credentials.${NC}"
   exit 1
 fi
 
 # Extract environment variables from .env file
-source <(grep -v '^#' .env | sed -E 's/(.*)=(.*)/export \1="\2"/')
+source <(grep -v '^#' "$ENV_FILE" | sed -E 's/(.*)=(.*)/export \1="\2"/')
 
 # Check if required environment variables are set
 if [ -z "$AUTH0_DOMAIN" ] || [ -z "$AUTH0_M2M_CLIENT_ID" ] || [ -z "$AUTH0_M2M_CLIENT_SECRET" ] || [ -z "$AUTH0_API_AUDIENCE" ]; then
-  echo -e "${RED}Error: Missing required environment variables in .env file.${NC}"
+  echo -e "${RED}Error: Missing required environment variables in $ENV_FILE file.${NC}"
   echo -e "Please ensure the following variables are set:"
   echo -e "  AUTH0_DOMAIN"
   echo -e "  AUTH0_M2M_CLIENT_ID"
@@ -47,11 +92,14 @@ pretty_print() {
   fi
 }
 
-echo -e "${BLUE}=== Auth0 M2M API Test ===${NC}"
-echo -e "Domain: $AUTH0_DOMAIN"
-echo -e "Audience: $AUTH0_API_AUDIENCE"
-echo -e "Client ID: $AUTH0_M2M_CLIENT_ID"
-echo -e "${BLUE}=========================${NC}"
+# Print the environment values if not in test mode
+if [ "$TEST_MODE" = false ]; then
+  echo -e "${BLUE}=== Auth0 M2M API Test ===${NC}"
+  echo -e "Domain: $AUTH0_DOMAIN"
+  echo -e "Audience: $AUTH0_API_AUDIENCE"
+  echo -e "Client ID: $AUTH0_M2M_CLIENT_ID"
+  echo -e "${BLUE}=========================${NC}"
+fi
 
 # Step 1: Get an access token from Auth0
 echo -e "\n${YELLOW}Step 1: Getting access token from Auth0...${NC}"
@@ -89,23 +137,33 @@ if [ -z "$ACCESS_TOKEN" ]; then
   exit 1
 fi
 
-# Step 2: Call the protected API
-echo -e "\n${YELLOW}Step 2: Calling protected API...${NC}"
+# Show token if requested
+if [ "$SHOW_TOKEN" = true ]; then
+  echo -e "${GREEN}Extracted token: $ACCESS_TOKEN${NC}"
+fi
 
-# Determine the API URL (adjust as needed based on your setup)
-API_URL="http://localhost:5001/api/auth0-protected"
+# Step 2: Call the protected API if not in test mode
+if [ "$TEST_MODE" = false ]; then
+  echo -e "\n${YELLOW}Step 2: Calling protected API...${NC}"
 
-API_RESPONSE=$(curl --silent --request GET \
-  --url "$API_URL" \
-  --header "authorization: Bearer $ACCESS_TOKEN")
+  # Determine the API URL (adjust as needed based on your setup)
+  if [ -z "$API_PATH" ]; then
+    API_PATH="/api/auth0-protected"
+  fi
+  API_URL="http://localhost:5001$API_PATH"
 
-echo -e "${GREEN}API Response:${NC}"
-pretty_print "$API_RESPONSE"
+  API_RESPONSE=$(curl --silent --request GET \
+    --url "$API_URL" \
+    --header "authorization: Bearer $ACCESS_TOKEN")
 
-echo -e "\n${BLUE}Test complete!${NC}"
-echo -e "You can also use this token to manually test the API:"
-echo -e "${YELLOW}curl --request GET \\
-  --url \"$API_URL\" \\
-  --header \"authorization: Bearer $ACCESS_TOKEN\"${NC}"
+  echo -e "${GREEN}API Response:${NC}"
+  pretty_print "$API_RESPONSE"
+
+  echo -e "\n${BLUE}Test complete!${NC}"
+  echo -e "You can also use this token to manually test the API:"
+  echo -e "${YELLOW}curl --request GET \\
+    --url \"$API_URL\" \\
+    --header \"authorization: Bearer $ACCESS_TOKEN\"${NC}"
+fi
 
 exit 0 
