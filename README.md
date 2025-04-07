@@ -10,6 +10,10 @@ This demo shows how to implement Basic and Digest Authentication in Flask.
 - Token-based Authentication using JWT
 - LDAP Authentication with direct server binding
 - Auth0 Universal Login integration with OAuth 2.0/OIDC
+- Auth0 API authentication with audience and scope configuration
+- Machine-to-Machine (M2M) authentication flow
+- User Authentication Flow with token context
+- API protection with token validation and audience verification
 - Stateful (Redis-backed) session management
 - Stateless token-based authentication with client-side storage
 - Multi-Factor Authentication (MFA) using TOTP
@@ -30,6 +34,7 @@ This demo shows how to implement Basic and Digest Authentication in Flask.
 - Various CORS configuration techniques
 - Preflight request handling examples
 - Flask-CORS extension integration
+- Testing utilities and scripts for authentication flows
 
 ## Setup
 
@@ -184,10 +189,12 @@ The demo provides these endpoints:
 - `/api/token` - Get JWT token using Basic Authentication
 - `/api/protected` - Protected endpoint requiring JWT token
 - `/api/token-data` - Protected API endpoint for the stateless UI
+- `/api/auth0-protected` - Protected API endpoint requiring Auth0 token
 - `/ldap-login` - Login page for LDAP authentication
 - `/ldap-protected` - Protected page requiring LDAP authentication
 - `/auth0/login` - Initiates Auth0 Universal Login flow
 - `/auth0/callback` - Callback URL for Auth0 authentication
+- `/auth0/token-callback` - Callback URL for Auth0 token authentication
 - `/auth0/profile` - Protected page requiring Auth0 authentication
 - `/auth0/logout` - Logout endpoint for Auth0 authentication
 - `/debug/decode-session` - Debug tool for analyzing Flask session cookies
@@ -330,7 +337,7 @@ To use Auth0 with this demo:
 1. Create a free Auth0 account at [auth0.com](https://auth0.com)
 2. Create a Regular Web Application in the Auth0 Dashboard
 3. Configure the application with these settings:
-   - Allowed Callback URLs: `http://127.0.0.1:5001/auth0/callback`
+   - Allowed Callback URLs: `http://127.0.0.1:5001/auth0/callback,http://127.0.0.1:5001/auth0/token-callback`
    - Allowed Logout URLs: `http://127.0.0.1:5001`
    - Allowed Web Origins: `http://127.0.0.1:5001`
 4. Update the `.env` file with your Auth0 credentials:
@@ -341,6 +348,50 @@ To use Auth0 with this demo:
    AUTH0_CALLBACK_URL=http://127.0.0.1:5001/auth0/callback
    ```
 
+#### Auth0 API Setup
+
+For API authentication, additional configuration is required:
+
+1. Create an API in Auth0 Dashboard with identifier (audience) and permissions
+2. Create a Machine-to-Machine application or configure existing application
+3. Set additional environment variables:
+   ```
+   # Auth0 API Configuration
+   AUTH0_API_AUDIENCE=https://api.example.com
+   
+   # Auth0 Machine-to-Machine Client (for API access)
+   AUTH0_M2M_CLIENT_ID=your-m2m-client-id
+   AUTH0_M2M_CLIENT_SECRET=your-m2m-client-secret
+   ```
+
+#### Auth0 API Authentication Flows
+
+The demo shows two authentication flows for API access:
+
+1. **User Authentication Flow**
+   - Redirects to Auth0 login
+   - Produces a token with user context
+   - Uses authorization code flow with PKCE
+
+2. **Machine-to-Machine Flow**
+   - Uses client credentials to get a token without user interaction
+   - Ideal for server-to-server communication
+   - Can be tested with included script or curl commands
+
+#### Testing Auth0 API Authentication
+
+For convenience, use the included test script:
+
+```bash
+# Make the script executable (if needed)
+chmod +x test_auth0_api.sh
+
+# Run the test
+./test_auth0_api.sh
+```
+
+The script will get an access token and call the protected API endpoint.
+
 #### Benefits of Auth0 Integration
 
 - Fully customizable login and registration pages
@@ -350,6 +401,8 @@ To use Auth0 with this demo:
 - Multi-factor Authentication (MFA)
 - Centralized user management dashboard
 - Detailed authentication logs and analytics
+- API authentication with audience and scope support
+- Machine-to-Machine authentication for server communication
 
 For more information, refer to the [Auth0 Setup Guide](auth0_setup_guide.md).
 
