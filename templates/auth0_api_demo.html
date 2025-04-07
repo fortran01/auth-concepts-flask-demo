@@ -1,0 +1,116 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-5">
+    <h1 class="mb-4">Demo 4: Securing APIs with Auth0</h1>
+    
+    <div class="card mb-4">
+        <div class="card-header bg-primary text-white">
+            <h2 class="h5 mb-0">About This Demo</h2>
+        </div>
+        <div class="card-body">
+            <p>This demo illustrates how to secure a backend API using Auth0 as the identity provider. 
+            The key components of this demo include:</p>
+            
+            <ul>
+                <li>An API endpoint protected by Auth0 tokens</li>
+                <li>Multiple authentication flows to obtain access tokens:
+                    <ul>
+                        <li>Authorization Code flow - for web applications with user context</li>
+                        <li>Client Credentials flow - for machine-to-machine applications</li>
+                    </ul>
+                </li>
+                <li>Token validation using Auth0's JWKS endpoint</li>
+                <li>Demonstration of audience and scope validation</li>
+            </ul>
+            
+            <p>In this flow, a client application requests an access token from Auth0 and uses it to access protected API endpoints.</p>
+        </div>
+    </div>
+    
+    <div class="card mb-4">
+        <div class="card-header bg-info text-white">
+            <h2 class="h5 mb-0">Architecture Diagram</h2>
+        </div>
+        <div class="card-body text-center">
+            <pre class="text-left">
+            ┌────────────┐      ┌─────────┐      ┌────────────┐
+            │            │      │         │      │            │
+            │   Client   │ ─────▶  Auth0  │      │  Protected │
+            │ Application│      │         │      │     API    │
+            │            │      │         │      │            │
+            └────────────┘      └─────────┘      └────────────┘
+                    │               │                   ▲
+                    │               │                   │
+                    │               ▼                   │
+                    │         [Access Token]            │
+                    │               │                   │
+                    └───────────────┼───────────────────┘
+                                    │
+                              Bearer Token
+            </pre>
+        </div>
+    </div>
+    
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h2 class="h5 mb-0">Option 1: User Authentication Flow</h2>
+                </div>
+                <div class="card-body">
+                    <p>Use the <strong>Authorization Code flow</strong> to obtain a token that includes user context. This is appropriate for web applications where a user is present.</p>
+                    <ul>
+                        <li>Redirects to Auth0 login page</li>
+                        <li>User authenticates and authorizes the application</li>
+                        <li>Token includes user identity claims</li>
+                    </ul>
+                    <a href="{{ url_for('auth0_get_token') }}" class="btn btn-primary">Get User Token</a>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-6">
+            <div class="card mb-4">
+                <div class="card-header bg-success text-white">
+                    <h2 class="h5 mb-0">Option 2: Machine-to-Machine Flow</h2>
+                </div>
+                <div class="card-body">
+                    <p>Use the <strong>Client Credentials flow</strong> to obtain a token without user context. This is appropriate for server-to-server API calls.</p>
+                    <ul>
+                        <li>No user interaction required</li>
+                        <li>Client ID and Secret used for authentication</li>
+                        <li>Ideal for background processes and APIs</li>
+                    </ul>
+                    <a href="{{ url_for('auth0_m2m_token') }}" class="btn btn-success">Get M2M Token</a>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card mb-4">
+                <div class="card-header bg-danger text-white">
+                    <h2 class="h5 mb-0">Step 3: Call Protected API</h2>
+                </div>
+                <div class="card-body">
+                    <p>Once you have an access token (from either flow), you can use it to make requests to the protected API endpoint.</p>
+                    <a href="{{ url_for('auth0_api_client') }}" class="btn btn-primary">Go to API Client</a>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="card">
+        <div class="card-header bg-secondary text-white">
+            <h2 class="h5 mb-0">Try Direct API Access</h2>
+        </div>
+        <div class="card-body">
+            <p>You can also try to access the protected API endpoint directly:</p>
+            <code>{{ url_for('auth0_api_protected', _external=True) }}</code>
+            <p class="mt-3">Without a valid access token, the API will return a 401 Unauthorized error.</p>
+        </div>
+    </div>
+</div>
+{% endblock %} 

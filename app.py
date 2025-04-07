@@ -19,6 +19,7 @@ import ldap
 from urllib.parse import quote_plus, urlencode
 from authlib.integrations.flask_client import OAuth
 from dotenv import load_dotenv
+import requests
 
 # Load environment variables from .env file
 load_dotenv()
@@ -79,6 +80,17 @@ oauth.register(
     client_secret=os.environ.get("AUTH0_CLIENT_SECRET"),
     client_kwargs={
         "scope": "openid profile email",
+    },
+    server_metadata_url=f'https://{os.environ.get("AUTH0_DOMAIN")}/.well-known/openid-configuration',
+)
+
+# Auth0 Machine-to-Machine OAuth client
+oauth.register(
+    "auth0_m2m",
+    client_id=os.environ.get("AUTH0_M2M_CLIENT_ID"),
+    client_secret=os.environ.get("AUTH0_M2M_CLIENT_SECRET"),
+    client_kwargs={
+        "scope": "read:data write:data",
     },
     server_metadata_url=f'https://{os.environ.get("AUTH0_DOMAIN")}/.well-known/openid-configuration',
 )
@@ -923,6 +935,181 @@ def auth0_logout():
         )
     )
 
+
+# Auth0 API Authentication - for Demo 4
+def auth0_api_required(f):
+    """Decorator for API routes that require Auth0 JWT token validation"""
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        auth_header = request.headers.get('Authorization')
+        if not auth_header or not auth_header.startswith('Bearer '):
+            return jsonify({'error': 'Missing authorization header'}), 401
+        
+        token = auth_header.split(' ')[1]
+        
+        try:
+            # Validate the token using Auth0's JWKS endpoint
+            jwks_url = f'https://{os.environ.get("AUTH0_DOMAIN")}/.well-known/jwks.json'
+            jwks_client = jwt.PyJWKClient(jwks_url)
+            signing_key = jwks_client.get_signing_key_from_jwt(token)
+            
+            # Validate the token with the right audience and issuer
+            payload = jwt.decode(
+                token,
+                signing_key.key,
+                algorithms=["RS256"],
+                audience=os.environ.get("AUTH0_API_AUDIENCE"),
+                issuer=f'https://{os.environ.get("AUTH0_DOMAIN")}/'
+            )
+            
+            # Store user info in flask.g for the route to use
+            g.auth0_user = payload
+            
+            return f(*args, **kwargs)
+        except jwt.InvalidTokenError as e:
+            logger.error(f"Invalid token: {str(e)}")
+            return jsonify({'error': 'Invalid token'}), 401
+        except Exception as e:
+            logger.error(f"Token validation error: {str(e)}")
+            return jsonify({'error': 'Token validation error'}), 500
+    
+    return decorated
+
+
+# Demo 4: API with Auth0 Routes
+@app.route('/auth0/api-demo')
+def auth0_api_demo():
+    """Landing page for the Auth0 API demo"""
+    return render_template('auth0_api_demo.html')
+
+@app.route('/api/auth0-protected')
+@auth0_api_required
+def auth0_api_protected():
+    """Protected API endpoint requiring a valid Auth0 access token"""
+    # g.auth0_user is set by the auth0_api_required decorator
+    user_info = g.auth0_user
+    
+    return jsonify({
+        'message': 'This API is protected by Auth0!',
+        'user': user_info.get('sub'),
+        'permissions': user_info.get('permissions', []),
+        'timestamp': datetime.now().isoformat()
+    })
+
+@app.route('/auth0/get-token', methods=['GET', 'POST'])
+def auth0_get_token():
+    """Page with a form to get an access token for Auth0 API"""
+    if request.method == 'POST':
+        # This would normally call Auth0's token endpoint with client credentials
+        # For demo purposes, we'll redirect to Auth0's login page
+        # and request both openid and API permissions
+        return oauth.auth0.authorize_redirect(
+            redirect_uri=url_for('auth0_token_callback', _external=True),
+            audience=os.environ.get("AUTH0_API_AUDIENCE"),
+            scope="openid profile email"  # Add API scopes as needed
+        )
+    
+    return render_template('auth0_get_token.html')
+
+@app.route('/auth0/m2m-token', methods=['GET', 'POST'])
+def auth0_m2m_token():
+    """
+    Get a machine-to-machine token directly from Auth0 using client credentials flow.
+    This demonstrates a true machine-to-machine OAuth 2.0 flow.
+    """
+    if request.method == 'POST':
+        try:
+            # Get token endpoint from the Auth0 server metadata
+            metadata_url = f'https://{os.environ.get("AUTH0_DOMAIN")}/.well-known/openid-configuration'
+            metadata_response = requests.get(metadata_url)
+            metadata = metadata_response.json()
+            token_endpoint = metadata.get('token_endpoint')
+            
+            # Make a direct token request using client credentials grant
+            token_response = requests.post(token_endpoint, data={
+                'grant_type': 'client_credentials',
+                'client_id': os.environ.get("AUTH0_M2M_CLIENT_ID"),
+                'client_secret': os.environ.get("AUTH0_M2M_CLIENT_SECRET"),
+                'audience': os.environ.get("AUTH0_API_AUDIENCE"),
+                'scope': 'read:data write:data'
+            })
+            
+            # Check if the request was successful
+            if token_response.status_code == 200:
+                token_data = token_response.json()
+                access_token = token_data.get('access_token')
+                
+                # Store in session for demo purposes
+                session['auth0_api_token'] = access_token
+                session['auth0_api_token_type'] = 'Machine-to-Machine'
+                session['auth0_api_token_data'] = token_data
+                
+                flash('Successfully obtained Machine-to-Machine token from Auth0!', 'success')
+                
+                # Instead of redirecting, show the token directly with ready-to-use curl command
+                return render_template('auth0_m2m_token.html', 
+                                     client_id=os.environ.get("AUTH0_M2M_CLIENT_ID", ""),
+                                     audience=os.environ.get("AUTH0_API_AUDIENCE", ""),
+                                     domain=os.environ.get("AUTH0_DOMAIN", ""),
+                                     access_token=access_token,
+                                     token_data=token_data,
+                                     show_token=True)
+            else:
+                flash(f'Error getting token: {token_response.json().get("error_description", "Unknown error")}', 'danger')
+                logger.error(f"M2M token error: {token_response.text}")
+        
+        except Exception as e:
+            logger.error(f"Error obtaining M2M token: {str(e)}", exc_info=True)
+            flash(f'Error: {str(e)}', 'danger')
+    
+    # Show the M2M token request page
+    return render_template('auth0_m2m_token.html', 
+                         client_id=os.environ.get("AUTH0_M2M_CLIENT_ID", ""),
+                         audience=os.environ.get("AUTH0_API_AUDIENCE", ""),
+                         domain=os.environ.get("AUTH0_DOMAIN", ""),
+                         show_token=False)
+
+@app.route('/auth0/token-callback')
+def auth0_token_callback():
+    """Callback endpoint after Auth0 login for API access token"""
+    # Get the tokens from Auth0
+    token_response = oauth.auth0.authorize_access_token()
+    
+    # Extract the access token
+    access_token = token_response.get('access_token')
+    
+    # Store tokens in session
+    session['auth0_api_token'] = access_token
+    session['auth0_api_token_type'] = 'User Authentication'
+    session['auth0_api_token_data'] = token_response
+    
+    # Also get user info if needed
+    if 'id_token' in token_response:
+        userinfo = token_response.get('userinfo', {})
+        if not userinfo:
+            resp = oauth.auth0.get('userinfo')
+            userinfo = resp.json()
+        
+        session['auth0_api_user'] = userinfo
+    
+    flash('Successfully obtained API access token from Auth0!')
+    return redirect('/auth0/api-client')
+
+@app.route('/auth0/api-client')
+def auth0_api_client():
+    """Client page that will use the Auth0 access token to call the API"""
+    access_token = session.get('auth0_api_token')
+    user_info = session.get('auth0_api_user')
+    
+    if not access_token:
+        flash('Please obtain an access token first')
+        return redirect('/auth0/get-token')
+    
+    return render_template(
+        'auth0_api_client.html',
+        access_token=access_token,
+        user_info=user_info
+    )
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5001) 

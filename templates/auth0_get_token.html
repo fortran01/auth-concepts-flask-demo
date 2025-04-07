@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h1 class="h4 mb-0">Get Auth0 Access Token</h1>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info">
+                        <p>To access the protected API, you need an access token from Auth0.</p>
+                        <p>Click the button below to authenticate with Auth0 and obtain a token with the necessary permissions.</p>
+                    </div>
+                    
+                    <form method="post" action="{{ url_for('auth0_get_token') }}">
+                        <div class="mb-3">
+                            <label class="form-label">Token Type: <strong>Bearer Token (JWT)</strong></label>
+                            <div class="form-text">
+                                This token will be used to access the protected API endpoint. It will include the correct audience
+                                and permissions needed for API access.
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Audience: <strong>{{ audience | default('auth-concepts-api') }}</strong></label>
+                            <div class="form-text">
+                                The audience identifies which API this token is intended for.
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Scopes: <strong>openid profile email</strong></label>
+                            <div class="form-text">
+                                Scopes determine what permissions the token will have when accessing API resources.
+                            </div>
+                        </div>
+                        
+                        <button type="submit" class="btn btn-primary">Authenticate with Auth0</button>
+                        <a href="{{ url_for('auth0_api_demo') }}" class="btn btn-secondary">Back to API Demo</a>
+                    </form>
+                </div>
+                <div class="card-footer">
+                    <div class="form-text">
+                        <strong>Note:</strong> In a production application, you might use different authentication flows depending on your application type:
+                        <ul class="mt-2">
+                            <li>Authorization Code Flow - for web applications with a backend</li>
+                            <li>Client Credentials Flow - for machine-to-machine authentication</li>
+                            <li>Implicit Flow - for legacy single-page applications</li>
+                            <li>Device Authorization Flow - for input-constrained devices</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

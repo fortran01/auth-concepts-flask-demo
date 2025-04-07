@@ -1,0 +1,157 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-10">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h1 class="h4 mb-0">Auth0 API Client</h1>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-success">
+                        <p><strong>Success!</strong> You have obtained an access token from Auth0.</p>
+                        <p>This token can now be used to access the protected API endpoint.</p>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <h2 class="h5">Your Token ({{ session.get('auth0_api_token_type', 'Access Token') }}):</h2>
+                        <div class="form-control bg-light overflow-auto" style="height: 80px; white-space: pre-wrap;">{{ access_token }}</div>
+                        
+                        {% if session.get('auth0_api_token_data') %}
+                        <div class="mt-2">
+                            <small class="text-muted">
+                                {% if session.get('auth0_api_token_data').get('expires_in') %}
+                                Token expires in {{ session.get('auth0_api_token_data').get('expires_in') }} seconds
+                                {% endif %}
+                                
+                                {% if session.get('auth0_api_token_data').get('scope') %}
+                                <br>Scopes: {{ session.get('auth0_api_token_data').get('scope') }}
+                                {% endif %}
+                            </small>
+                        </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="card mb-4">
+                        <div class="card-header bg-dark text-white">
+                            <h2 class="h5 mb-0">Ready-to-Use Curl Command</h2>
+                        </div>
+                        <div class="card-body">
+                            <p>Copy and paste this command into your terminal to test the API directly:</p>
+                            <div class="bg-light p-3 rounded">
+                                <pre class="mb-0" style="white-space: pre-wrap; word-break: break-all;"><code>curl --request GET \
+  --url "{{ url_for('auth0_api_protected', _external=True) }}" \
+  --header "authorization: Bearer {{ access_token }}"</code></pre>
+                            </div>
+                            <div class="d-grid gap-2 mt-3">
+                                <button id="copyBtn" class="btn btn-sm btn-outline-primary">Copy Command</button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <h2 class="h5 mb-3">Test the API:</h2>
+                    <div class="card mb-4">
+                        <div class="card-header bg-dark text-white">
+                            API Endpoint: <code>{{ url_for('auth0_api_protected', _external=True) }}</code>
+                        </div>
+                        <div class="card-body">
+                            <button id="callApiBtn" class="btn btn-primary mb-3">Call Protected API</button>
+                            
+                            <div id="loadingIndicator" class="d-none">
+                                <div class="spinner-border text-primary" role="status">
+                                    <span class="visually-hidden">Loading...</span>
+                                </div>
+                                <span class="ms-2">Calling API...</span>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">API Response:</label>
+                                <div id="apiResponse" class="form-control bg-light overflow-auto" style="height: 200px; white-space: pre;">Click "Call Protected API" to make a request</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    {% if user_info %}
+                    <div class="mb-4">
+                        <h2 class="h5 mb-3">Your User Info:</h2>
+                        <div class="bg-light p-3 rounded overflow-auto" style="max-height: 300px; white-space: pre;">{{ user_info | tojson(indent=2) }}</div>
+                    </div>
+                    {% endif %}
+                    
+                    <div class="d-flex justify-content-between mt-4">
+                        <div>
+                            <a href="{{ url_for('auth0_get_token') }}" class="btn btn-outline-primary">Get User Token</a>
+                            <a href="{{ url_for('auth0_m2m_token') }}" class="btn btn-outline-success">Get M2M Token</a>
+                        </div>
+                        <a href="{{ url_for('auth0_api_demo') }}" class="btn btn-secondary">Back to API Demo</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const apiBtn = document.getElementById('callApiBtn');
+    const loadingIndicator = document.getElementById('loadingIndicator');
+    const apiResponse = document.getElementById('apiResponse');
+    const token = "{{ access_token }}";
+    
+    // Add copy functionality
+    const copyBtn = document.getElementById('copyBtn');
+    copyBtn.addEventListener('click', function() {
+        const curlCommand = `curl --request GET \\
+  --url "{{ url_for('auth0_api_protected', _external=True) }}" \\
+  --header "authorization: Bearer {{ access_token }}"`;
+        
+        navigator.clipboard.writeText(curlCommand)
+            .then(() => {
+                copyBtn.textContent = 'Copied!';
+                setTimeout(() => {
+                    copyBtn.textContent = 'Copy Command';
+                }, 2000);
+            })
+            .catch(err => {
+                console.error('Could not copy text: ', err);
+                copyBtn.textContent = 'Failed to copy';
+                setTimeout(() => {
+                    copyBtn.textContent = 'Copy Command';
+                }, 2000);
+            });
+    });
+    
+    apiBtn.addEventListener('click', async function() {
+        // Show loading indicator
+        apiBtn.disabled = true;
+        loadingIndicator.classList.remove('d-none');
+        apiResponse.textContent = 'Making request...';
+        
+        try {
+            const response = await fetch('{{ url_for("auth0_api_protected") }}', {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+            
+            const data = await response.json();
+            
+            if (response.ok) {
+                apiResponse.textContent = JSON.stringify(data, null, 2);
+            } else {
+                apiResponse.textContent = `Error ${response.status}: ${JSON.stringify(data, null, 2)}`;
+            }
+        } catch (error) {
+            apiResponse.textContent = `Error: ${error.message}`;
+        } finally {
+            // Hide loading indicator
+            apiBtn.disabled = false;
+            loadingIndicator.classList.add('d-none');
+        }
+    });
+});
+</script>
+{% endblock %} 
