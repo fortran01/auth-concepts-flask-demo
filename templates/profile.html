@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}User Profile - Flask Auth Demo{% endblock %}
+{% block title %}User Profile (Vulnerable) - Flask Auth Demo{% endblock %}
 
 {% block content %}
 <div class="card mb-4">
@@ -8,12 +8,13 @@
         <h3>User Profile (Vulnerable to CSRF)</h3>
     </div>
     <div class="card-body">
-        <div class="alert alert-warning">
+        <div class="alert alert-danger">
             <strong>Warning:</strong> This page is intentionally vulnerable to CSRF attacks for demonstration purposes.
         </div>
         
-        <h4>Welcome {{ session['username'] }}!</h4>
+        <h4>Welcome {{ session['username'] if session.get('username') else 'User' }}!</h4>
         <p>Your current email address is: <strong>{{ email }}</strong></p>
+        <p>Your current username is: <strong>{{ username }}</strong></p>
         
         <div class="card mt-4">
             <div class="card-header">
@@ -29,6 +30,21 @@
                 </form>
             </div>
         </div>
+
+        <div class="card mt-4">
+            <div class="card-header">
+                <h5>Update Username</h5>
+            </div>
+            <div class="card-body">
+                <form action="{{ url_for('update_username') }}" method="POST">
+                    <div class="form-group">
+                        <label for="username">New Username:</label>
+                        <input type="text" class="form-control" id="username" name="username" value="{{ username }}" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary mt-3">Update Username</button>
+                </form>
+            </div>
+        </div>
     </div>
 </div>
 
@@ -39,12 +55,14 @@
     <div class="card-body">
         <p>
             This page is <strong>vulnerable to CSRF attacks</strong> because it does not implement any protection mechanism.
-            If you visit the <a href="{{ url_for('malicious_site') }}" target="_blank">malicious site</a> while logged in, 
-            your email will be changed without your consent.
         </p>
         <p>
-            To see how this vulnerability can be fixed, visit the 
-            <a href="{{ url_for('profile_protected') }}">protected version</a> of this page.
+            Try visiting the <a href="{{ url_for('malicious_site') }}" target="_blank">malicious site</a> to see a demonstration of a CSRF attack.
+            If you click the OK button on the alert, your email will be changed to <code>hacked@malicious.com</code> without your consent.
+        </p>
+        <p>
+            To see the protected version of this page, visit the 
+            <a href="{{ url_for('profile_protected') }}">protected version</a>.
         </p>
         <p>
             <a href="{{ url_for('csrf_demo') }}" class="btn btn-info">Back to CSRF Demo</a>

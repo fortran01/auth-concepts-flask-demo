@@ -12,8 +12,16 @@
             <strong>Note:</strong> This page is protected against CSRF attacks using an anti-CSRF token.
         </div>
         
-        <h4>Welcome {{ session['username'] }}!</h4>
+        {% if attack_attempted %}
+        <div class="alert alert-warning">
+            <strong>Attack Detected!</strong> A CSRF attack was attempted but blocked by the protection mechanism. 
+            Your information is safe because the request did not include a valid CSRF token.
+        </div>
+        {% endif %}
+        
+        <h4>Welcome {{ session['username'] if session.get('username') else 'User' }}!</h4>
         <p>Your current email address is: <strong>{{ email }}</strong></p>
+        <p>Your current username is: <strong>{{ username }}</strong></p>
         
         <div class="card mt-4">
             <div class="card-header">
@@ -28,6 +36,23 @@
                     <!-- CSRF Protection: Hidden field with the CSRF token -->
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <button type="submit" class="btn btn-primary mt-3">Update Email</button>
+                </form>
+            </div>
+        </div>
+
+        <div class="card mt-4">
+            <div class="card-header">
+                <h5>Update Username</h5>
+            </div>
+            <div class="card-body">
+                <form action="{{ url_for('update_username_protected') }}" method="POST">
+                    <div class="form-group">
+                        <label for="username">New Username:</label>
+                        <input type="text" class="form-control" id="username" name="username" value="{{ username }}" required>
+                    </div>
+                    <!-- CSRF Protection: Hidden field with the CSRF token -->
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit" class="btn btn-primary mt-3">Update Username</button>
                 </form>
             </div>
         </div>
@@ -49,8 +74,8 @@
             This prevents CSRF attacks because a malicious site cannot know or guess this token.
         </p>
         <p>
-            Try visiting the <a href="{{ url_for('malicious_site') }}" target="_blank">malicious site</a> now. 
-            Your email will not be changed because the forged request does not include a valid CSRF token.
+            Try visiting the <a href="{{ url_for('malicious_site_protected') }}" target="_blank">malicious site attack demo</a> now. 
+            Your username will not be changed because the forged request does not include a valid CSRF token.
         </p>
         <p>
             To see the vulnerable version of this page, visit the 

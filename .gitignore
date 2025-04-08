@@ -54,3 +54,4 @@ config.py
 .cursor.directory_structure.md
 mod4.md
 plans/
+auth-concepts-nestjs-main/

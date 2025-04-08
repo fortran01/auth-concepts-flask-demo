@@ -32,7 +32,7 @@
                         <h5>Vulnerable Page</h5>
                     </div>
                     <div class="card-body">
-                        <p>This page has a form to update your email address, but it's vulnerable to CSRF attacks.</p>
+                        <p>This page has forms to update your email address and username, but it's vulnerable to CSRF attacks.</p>
                         <a href="{{ url_for('profile') }}" class="btn btn-danger">View Vulnerable Page</a>
                     </div>
                 </div>
@@ -52,24 +52,51 @@
         
         <div class="card mb-4">
             <div class="card-header bg-warning text-dark">
-                <h5>Malicious Site</h5>
+                <h5>Malicious Site Demonstrations</h5>
             </div>
             <div class="card-body">
-                <p>
-                    This page simulates a malicious website that attempts to trick the user into submitting a form to 
-                    the vulnerable page. The form is hidden and automatically submitted when the page loads.
-                </p>
-                <a href="{{ url_for('malicious_site') }}" class="btn btn-warning" target="_blank">Visit Malicious Site</a>
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="card h-100">
+                            <div class="card-header bg-danger">
+                                <h6>Attack on Vulnerable Page</h6>
+                            </div>
+                            <div class="card-body">
+                                <p>
+                                    This simulates a malicious website that attempts to change your email on the vulnerable page.
+                                    The attack will succeed because there's no CSRF protection.
+                                </p>
+                                <a href="{{ url_for('malicious_site') }}" class="btn btn-outline-danger" target="_blank">Attack Vulnerable Page</a>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card h-100">
+                            <div class="card-header bg-success">
+                                <h6>Attack on Protected Page</h6>
+                            </div>
+                            <div class="card-body">
+                                <p>
+                                    This simulates a malicious website that attempts to change your username on the protected page.
+                                    The attack will fail because of the CSRF protection.
+                                </p>
+                                <a href="{{ url_for('malicious_site_protected') }}" class="btn btn-outline-success" target="_blank">Attack Protected Page</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
         
         <h4>How to Test the Demo</h4>
         <ol>
             <li>Login to the application if you haven't already.</li>
-            <li>Visit the <a href="{{ url_for('profile') }}">Vulnerable Profile Page</a> and note your current email address.</li>
-            <li>In a new tab, visit the <a href="{{ url_for('malicious_site') }}" target="_blank">Malicious Site</a>.</li>
+            <li>Visit the <a href="{{ url_for('profile') }}">Vulnerable Profile Page</a> and note your current email address and username.</li>
+            <li>In a new tab, visit the <a href="{{ url_for('malicious_site') }}" target="_blank">Malicious Site (Attacking Vulnerable Page)</a>.</li>
             <li>Return to the Vulnerable Profile Page and notice that your email has been changed without your explicit consent.</li>
-            <li>Now try the same test with the <a href="{{ url_for('profile_protected') }}">Protected Profile Page</a>. The attack will fail.</li>
+            <li>Now visit the <a href="{{ url_for('profile_protected') }}">Protected Profile Page</a> and note your current email address and username.</li>
+            <li>In a new tab, visit the <a href="{{ url_for('malicious_site_protected') }}" target="_blank">Malicious Site (Attacking Protected Page)</a>.</li>
+            <li>Return to the Protected Profile Page and notice that your username remains unchanged and an attack notification is displayed.</li>
         </ol>
     </div>
 </div>

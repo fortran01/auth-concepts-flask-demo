@@ -1,6 +1,6 @@
 from flask import (
     Flask, request, Response, render_template, redirect,
-    url_for, session, flash, jsonify, g
+    url_for, session, flash, jsonify, g, get_flashed_messages
 )
 from functools import wraps
 import hashlib
@@ -647,9 +647,14 @@ def debug_redis_session():
 @mfa_required
 def profile():
     """User profile page with a form to update email (vulnerable to CSRF)"""
-    # Default email for demo purposes
+    # Default values for demo purposes
     email = session.get('email', 'user@example.com')
-    return render_template('profile.html', email=email, csrf_protected=False)
+    username = session.get('username', 'default_user')
+    
+    # Store flash messages to return to the template
+    flash_messages = get_flashed_messages(with_categories=True)
+    
+    return render_template('profile.html', email=email, username=username, csrf_protected=False)
 
 @app.route('/update-email', methods=['POST'])
 @login_required
@@ -665,6 +670,20 @@ def update_email():
         flash('Email cannot be empty', 'danger')
     return redirect(url_for('profile'))
 
+@app.route('/update-username', methods=['POST'])
+@login_required
+@mfa_required
+def update_username():
+    """Endpoint to update username (vulnerable to CSRF)"""
+    new_username = request.form.get('username')
+    if new_username:
+        # Store the new username in the session for demo purposes
+        session['username'] = new_username
+        flash('Username updated successfully!', 'success')
+    else:
+        flash('Username cannot be empty', 'danger')
+    return redirect(url_for('profile'))
+
 # CSRF Token generation function
 def generate_csrf_token():
     """Generate a CSRF token and store it in the session"""
@@ -677,9 +696,18 @@ def generate_csrf_token():
 @mfa_required
 def profile_protected():
     """User profile page with CSRF protection"""
-    # Default email for demo purposes
+    # Default values for demo purposes
     email = session.get('email', 'user@example.com')
-    return render_template('profile_protected.html', email=email, csrf_protected=True)
+    username = session.get('username', 'default_user')
+    
+    # Check if there was an attack attempt
+    attack_attempted = session.pop('csrf_attack_attempted', False)
+    
+    return render_template('profile_protected.html', 
+                          email=email, 
+                          username=username, 
+                          csrf_protected=True,
+                          attack_attempted=attack_attempted)
 
 @app.route('/update-email-protected', methods=['POST'])
 @login_required
@@ -701,6 +729,28 @@ def update_email_protected():
         flash('Email cannot be empty', 'danger')
     return redirect(url_for('profile_protected'))
 
+@app.route('/update-username-protected', methods=['POST'])
+@login_required
+@mfa_required
+def update_username_protected():
+    """Endpoint to update username with CSRF protection"""
+    # Check CSRF token
+    token = request.form.get('csrf_token')
+    if not token or token != session.get('csrf_token'):
+        # Set attack attempt flag to show an additional notification
+        session['csrf_attack_attempted'] = True
+        flash('Invalid CSRF token. This could be a cross-site request forgery attempt!', 'danger')
+        return redirect(url_for('profile_protected'))
+    
+    new_username = request.form.get('username')
+    if new_username:
+        # Store the new username in the session for demo purposes
+        session['username'] = new_username
+        flash('Username updated successfully!', 'success')
+    else:
+        flash('Username cannot be empty', 'danger')
+    return redirect(url_for('profile_protected'))
+
 @app.route('/csrf-demo')
 def csrf_demo():
     """Page explaining the CSRF demo with links to the vulnerable and protected pages"""
@@ -708,8 +758,13 @@ def csrf_demo():
 
 @app.route('/malicious-site')
 def malicious_site():
-    """Demo page showing a malicious site for CSRF attacks"""
-    return render_template('malicious.html')
+    """Demo page showing a malicious site for CSRF attacks targeting the vulnerable endpoint"""
+    return render_template('malicious.html', target_vulnerable=True, target_protected=False)
+
+@app.route('/malicious-site-protected')
+def malicious_site_protected():
+    """Demo page showing a malicious site for CSRF attacks targeting the protected endpoint"""
+    return render_template('malicious.html', target_vulnerable=False, target_protected=True)
 
 @app.route('/cors-demo-info')
 def cors_demo_info():
