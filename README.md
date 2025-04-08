@@ -34,6 +34,9 @@ This demo shows how to implement Basic and Digest Authentication in Flask.
 - Various CORS configuration techniques
 - Preflight request handling examples
 - Flask-CORS extension integration
+- Cross-Site Request Forgery (CSRF) vulnerability demonstration
+- Anti-CSRF token protection implementation
+- Interactive examples of CSRF attacks and prevention
 - Testing utilities and scripts for authentication flows
 
 ## Setup
@@ -197,6 +200,11 @@ The demo provides these endpoints:
 - `/auth0/token-callback` - Callback URL for Auth0 token authentication
 - `/auth0/profile` - Protected page requiring Auth0 authentication
 - `/auth0/logout` - Logout endpoint for Auth0 authentication
+- `/csrf-demo` - Overview page for the CSRF vulnerability demo
+- `/profile` - User profile page vulnerable to CSRF attacks
+- `/profile-protected` - User profile page protected from CSRF attacks
+- `/malicious-site` - Simulated malicious site targeting vulnerable endpoint
+- `/malicious-site-protected` - Simulated malicious site targeting protected endpoint
 - `/debug/decode-session` - Debug tool for analyzing Flask session cookies
 - `/debug/redis-session` - Debug tool for viewing Redis session data
 
@@ -495,3 +503,56 @@ To fully understand what's happening:
 2. Go to the Network tab
 3. Watch the requests as you click the demo buttons
 4. Inspect the request headers, response headers, and error messages
+
+## CSRF Demo
+
+The project includes a demonstration of Cross-Site Request Forgery (CSRF) vulnerabilities and protection mechanisms.
+
+### What is CSRF?
+
+CSRF (Cross-Site Request Forgery) is an attack that forces authenticated users to submit unwanted requests to a web application in which they're currently authenticated. Unlike XSS, which exploits the trust a user has in a website, CSRF exploits the trust a website has in a user's browser.
+
+### CSRF Demo Setup
+
+The demo showcases:
+
+1. **Vulnerable Profile Page**
+   - Demonstrates forms without CSRF protection
+   - Shows how attackers can forge malicious requests
+
+2. **Protected Profile Page**
+   - Implements anti-CSRF token protection
+   - Shows how to properly validate tokens
+
+3. **Malicious Site Simulation**
+   - Demonstrates how attackers craft malicious pages
+   - Shows both successful attacks against vulnerable endpoints
+   - Shows failed attacks against protected endpoints
+
+### Using the CSRF Demo
+
+1. Login to the application
+2. Visit `/csrf-demo` in your browser
+3. Explore the different pages:
+   - Try updating information on both the vulnerable and protected pages
+   - Visit the simulated malicious sites to see attack attempts
+   - Observe how CSRF tokens prevent attacks
+
+### CSRF Protection Mechanism
+
+The protection works by:
+
+1. Generating a random token that's stored in the user's session
+2. Including this token as a hidden field in forms
+3. Validating the token when form submissions are received
+4. Rejecting requests with missing or invalid tokens
+
+This prevents attacks because the malicious site can't access or guess the correct token.
+
+### CSRF Learning Points
+
+- Without protection, authenticated actions can be triggered from other sites
+- Anti-CSRF tokens provide strong protection against CSRF attacks
+- Proper token validation must check both existence and correctness
+- CSRF tokens should be unique per user session
+- Attack detection mechanisms can alert users to potential CSRF attempts
